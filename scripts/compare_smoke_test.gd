@@ -7,6 +7,7 @@ func _initialize() -> void:
 	get_root().add_child(panel)
 	await process_frame
 	await panel._run_compare()
+	print(panel.result_label.text)
 	if panel.debug_rect.texture == null:
 		push_error("Auto compare did not generate a debug texture.")
 		quit(1)

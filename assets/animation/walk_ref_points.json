@@ -1,4 +1,8 @@
 {
+  "schema": "mech_walk_reference_skeleton_v1",
+  "source": "male_tinpet_walk_10f_v1.png",
+  "point_order": ["head", "neck", "torso", "shoulder", "elbow", "wrist", "hand", "hip", "near_knee", "near_ankle", "near_toe", "far_knee", "far_ankle", "far_toe"],
+  "notes": "Frame-local pixel coordinates. Point names match MaleTinpetSpriteRig.get_compare_points().",
   "frames": [
     {"head":[103,205],"neck":[103,279],"torso":[106,334],"shoulder":[93,292],"elbow":[66,378],"wrist":[43,448],"hand":[33,476],"hip":[105,415],"near_knee":[70,498],"near_ankle":[40,565],"near_toe":[19,594],"far_knee":[139,493],"far_ankle":[153,563],"far_toe":[178,590]},
     {"head":[104,205],"neck":[103,279],"torso":[104,336],"shoulder":[93,293],"elbow":[78,378],"wrist":[56,445],"hand":[43,475],"hip":[104,416],"near_knee":[95,502],"near_ankle":[83,570],"near_toe":[64,595],"far_knee":[129,502],"far_ankle":[154,568],"far_toe":[179,590]},

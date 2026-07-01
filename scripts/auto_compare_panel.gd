@@ -72,7 +72,7 @@ func _run_compare() -> void:
 		var rig_points: Dictionary = render["points"]
 		var silhouette_score := _compare_images(ref_img, rig_img)
 		var joint_score := _compare_points(ref_points[i], rig_points, ref_img, rig_img)
-		var score: float = silhouette_score * 0.35 + joint_score * 0.65
+		var score: float = silhouette_score * 0.05 + joint_score * 0.95
 		scores.append(score)
 		lines.append("%02d: %.1f/%.1f" % [i + 1, score, joint_score])
 		if score < worst_score:
@@ -118,7 +118,7 @@ func _render_rig_frame(frame_index: int) -> Dictionary:
 	rig.position = Vector2(130, 318)
 	viewport.add_child(rig)
 	await get_tree().process_frame
-	rig.t = 1.2 * float(frame_index) / 10.0
+	rig.t = 1.2 * float(frame_index) / 9.0
 	rig._pose()
 	var points := rig.get_compare_points()
 
@@ -154,8 +154,8 @@ func _make_point_proxy_image(points: Dictionary) -> Image:
 	return img
 
 func _compare_points(ref_frame: Dictionary, rig_points: Dictionary, ref_img: Image, rig_img: Image) -> float:
-	var ref_bbox := _foreground_bbox(ref_img)
-	var rig_bbox := _foreground_bbox(rig_img)
+	var ref_bbox := _reference_points_bbox(ref_frame, rig_points)
+	var rig_bbox := _rig_points_bbox(ref_frame, rig_points)
 	if ref_bbox.size.x <= 1 or rig_bbox.size.x <= 1:
 		return 0.0
 	var total := 0.0
@@ -180,8 +180,8 @@ func _make_debug_image(ref_img: Image, rig_img: Image, ref_frame: Dictionary, ri
 	var out := Image.create(ref_img.get_width(), ref_img.get_height(), false, Image.FORMAT_RGBA8)
 	out.fill(Color.WHITE)
 	out.blit_rect(ref_img, Rect2i(Vector2i.ZERO, ref_img.get_size()), Vector2i.ZERO)
-	var ref_bbox := _foreground_bbox(ref_img)
-	var rig_bbox := _foreground_bbox(rig_img)
+	var ref_bbox := _reference_points_bbox(ref_frame, rig_points)
+	var rig_bbox := _rig_points_bbox(ref_frame, rig_points)
 	for key in ref_frame.keys():
 		if not rig_points.has(key):
 			continue
@@ -195,6 +195,44 @@ func _make_debug_image(ref_img: Image, rig_img: Image, ref_frame: Dictionary, ri
 		_draw_dot_on_image(out, ref_p, Color.YELLOW)
 		_draw_dot_on_image(out, mapped, Color.CYAN)
 	return out
+
+func _reference_points_bbox(ref_frame: Dictionary, rig_points: Dictionary) -> Rect2:
+	var min_x := INF
+	var min_y := INF
+	var max_x := -INF
+	var max_y := -INF
+	var found := false
+	for key in ref_frame.keys():
+		if not rig_points.has(key):
+			continue
+		var p := Vector2(float(ref_frame[key][0]), float(ref_frame[key][1]))
+		min_x = min(min_x, p.x)
+		min_y = min(min_y, p.y)
+		max_x = max(max_x, p.x)
+		max_y = max(max_y, p.y)
+		found = true
+	if not found:
+		return Rect2()
+	return Rect2(Vector2(min_x, min_y), Vector2(max_x - min_x, max_y - min_y))
+
+func _rig_points_bbox(ref_frame: Dictionary, rig_points: Dictionary) -> Rect2:
+	var min_x := INF
+	var min_y := INF
+	var max_x := -INF
+	var max_y := -INF
+	var found := false
+	for key in ref_frame.keys():
+		if not rig_points.has(key):
+			continue
+		var p: Vector2 = rig_points[key]
+		min_x = min(min_x, p.x)
+		min_y = min(min_y, p.y)
+		max_x = max(max_x, p.x)
+		max_y = max(max_y, p.y)
+		found = true
+	if not found:
+		return Rect2()
+	return Rect2(Vector2(min_x, min_y), Vector2(max_x - min_x, max_y - min_y))
 
 func _draw_dot_on_image(img: Image, p: Vector2, color: Color) -> void:
 	for y in range(-3, 4):

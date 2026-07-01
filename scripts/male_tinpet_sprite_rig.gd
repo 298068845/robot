@@ -2,6 +2,31 @@ extends Node2D
 
 const PART_DIR := "res://assets/parts/male_tinpet/"
 const BINDING_PATH := "user://male_tinpet_binding.json"
+const REF_POINTS_PATH := "res://assets/animation/walk_ref_points.json"
+const REF_DISPLAY_SCALE := 0.72
+const FOOT_TOE_LOCAL := Vector2(185, 88)
+const PART_DRAW_ORDER := {
+	"far_thigh_mesh": -80,
+	"far_shin_mesh": -79,
+	"far_knee_mesh": -78,
+	"far_ankle_mesh": -77,
+	"far_foot_mesh": -76,
+	"far_upper_arm_mesh": -60,
+	"far_forearm_mesh": -59,
+	"far_shoulder_mesh": -58,
+	"far_hand_mesh": -57,
+	"torso_mesh": 0,
+	"head_mesh": 30,
+	"near_thigh_mesh": 40,
+	"near_shin_mesh": 41,
+	"near_knee_mesh": 42,
+	"near_ankle_mesh": 43,
+	"near_foot_mesh": 44,
+	"near_upper_arm_mesh": 60,
+	"near_forearm_mesh": 61,
+	"near_shoulder_mesh": 62,
+	"near_hand_mesh": 63,
+}
 
 var action := "walk"
 var t := 0.0
@@ -28,11 +53,14 @@ var far_foot := Node2D.new()
 var edit_mode := false
 var bind_offsets: Dictionary = {}
 var part_sprites: Dictionary = {}
+var reference_walk_frames: Array = []
+var current_compare_points: Dictionary = {}
 
 func _ready() -> void:
 	add_child(body)
 	body.scale = Vector2(0.42, 0.42)
 	load_binding()
+	_load_reference_walk()
 	_build_body()
 	play_action("walk")
 
@@ -69,30 +97,30 @@ func _build_body() -> void:
 	near_arm.add_child(near_forearm)
 	near_forearm.add_child(near_hand)
 
-	part_sprites["torso_mesh"] = _add_part(torso, "torso_side.png", Vector2(82, 218), 2, 1.0, false, 0.0, "torso_mesh")
-	part_sprites["head_mesh"] = _add_part(head, "head_side.png", Vector2(142, 152), 8, 1.0, true, 266, "head_mesh")
-	_add_arm_parts(far_arm, far_forearm, far_hand, 0.52, -1)
-	_add_arm_parts(near_arm, near_forearm, near_hand, 1.0, 6)
-	_add_leg_parts(far_thigh, far_knee, far_shin, far_ankle, far_foot, 0.46, -2)
-	_add_leg_parts(near_thigh, near_knee, near_shin, near_ankle, near_foot, 1.0, 4)
+	part_sprites["torso_mesh"] = _add_part(torso, "torso_side.png", Vector2(82, 218), 1.0, false, 0.0, "torso_mesh")
+	part_sprites["head_mesh"] = _add_part(head, "head_side.png", Vector2(142, 152), 1.0, true, 266, "head_mesh")
+	_add_arm_parts(far_arm, far_forearm, far_hand, 0.52)
+	_add_arm_parts(near_arm, near_forearm, near_hand, 1.0)
+	_add_leg_parts(far_thigh, far_knee, far_shin, far_ankle, far_foot, 0.46)
+	_add_leg_parts(near_thigh, near_knee, near_shin, near_ankle, near_foot, 1.0)
 
-func _add_arm_parts(upper: Node2D, forearm: Node2D, hand_node: Node2D, alpha: float, z: int) -> void:
+func _add_arm_parts(upper: Node2D, forearm: Node2D, hand_node: Node2D, alpha: float) -> void:
 	var prefix := "near" if alpha > 0.9 else "far"
-	part_sprites[prefix + "_shoulder_mesh"] = _add_part(upper, "shoulder_joint.png", Vector2(96, 82), z + 2, alpha, false, 0.0, prefix + "_shoulder_mesh")
-	part_sprites[prefix + "_upper_arm_mesh"] = _add_part(upper, "upper_arm_tube.png", Vector2(18, 39), z + 1, alpha, false, 0.0, prefix + "_upper_arm_mesh")
-	part_sprites[prefix + "_forearm_mesh"] = _add_part(forearm, "forearm_tube.png", Vector2(18, 41), z + 1, alpha, false, 0.0, prefix + "_forearm_mesh")
-	part_sprites[prefix + "_hand_mesh"] = _add_part(hand_node, "hand_side.png", Vector2(33, 84), z + 3, alpha, false, 0.0, prefix + "_hand_mesh")
+	part_sprites[prefix + "_shoulder_mesh"] = _add_part(upper, "shoulder_joint.png", Vector2(96, 82), alpha, false, 0.0, prefix + "_shoulder_mesh")
+	part_sprites[prefix + "_upper_arm_mesh"] = _add_part(upper, "upper_arm_tube.png", Vector2(18, 39), alpha, false, 0.0, prefix + "_upper_arm_mesh")
+	part_sprites[prefix + "_forearm_mesh"] = _add_part(forearm, "forearm_tube.png", Vector2(18, 41), alpha, false, 0.0, prefix + "_forearm_mesh")
+	part_sprites[prefix + "_hand_mesh"] = _add_part(hand_node, "hand_side.png", Vector2(33, 84), alpha, false, 0.0, prefix + "_hand_mesh")
 
-func _add_leg_parts(thigh: Node2D, knee: Node2D, shin: Node2D, ankle: Node2D, foot: Node2D, alpha: float, z: int) -> void:
+func _add_leg_parts(thigh: Node2D, knee: Node2D, shin: Node2D, ankle: Node2D, foot: Node2D, alpha: float) -> void:
 	var prefix := "near" if alpha > 0.9 else "far"
-	part_sprites[prefix + "_thigh_mesh"] = _add_part(thigh, "thigh_tube.png", Vector2(40, 28), z, alpha, false, 0.0, prefix + "_thigh_mesh")
-	part_sprites[prefix + "_knee_mesh"] = _add_part(knee, "knee_joint.png", Vector2(66, 98), z + 2, alpha, false, 0.0, prefix + "_knee_mesh")
-	part_sprites[prefix + "_shin_mesh"] = _add_part(shin, "shin_tube.png", Vector2(38, 28), z, alpha, false, 0.0, prefix + "_shin_mesh")
-	part_sprites[prefix + "_ankle_mesh"] = _add_part(ankle, "ankle_joint.png", Vector2(56, 88), z + 2, alpha, false, 0.0, prefix + "_ankle_mesh")
+	part_sprites[prefix + "_thigh_mesh"] = _add_part(thigh, "thigh_tube.png", Vector2(40, 28), alpha, false, 0.0, prefix + "_thigh_mesh")
+	part_sprites[prefix + "_knee_mesh"] = _add_part(knee, "knee_joint.png", Vector2(66, 98), alpha, false, 0.0, prefix + "_knee_mesh")
+	part_sprites[prefix + "_shin_mesh"] = _add_part(shin, "shin_tube.png", Vector2(38, 28), alpha, false, 0.0, prefix + "_shin_mesh")
+	part_sprites[prefix + "_ankle_mesh"] = _add_part(ankle, "ankle_joint.png", Vector2(56, 88), alpha, false, 0.0, prefix + "_ankle_mesh")
 	# The source foot faces left. Flip it so toe direction matches the right-facing walk reference.
-	part_sprites[prefix + "_foot_mesh"] = _add_part(foot, "foot_side.png", Vector2(72, 48), z + 3, alpha, true, 290, prefix + "_foot_mesh")
+	part_sprites[prefix + "_foot_mesh"] = _add_part(foot, "foot_side.png", Vector2(72, 48), alpha, true, 290, prefix + "_foot_mesh")
 
-func _add_part(parent: Node2D, file_name: String, anchor: Vector2, z: int, alpha := 1.0, flip_h := false, width := 0.0, part_name := "") -> Sprite2D:
+func _add_part(parent: Node2D, file_name: String, anchor: Vector2, alpha := 1.0, flip_h := false, width := 0.0, part_name := "") -> Sprite2D:
 	var sprite := Sprite2D.new()
 	sprite.texture = _load_texture(PART_DIR + file_name)
 	sprite.centered = false
@@ -102,10 +130,14 @@ func _add_part(parent: Node2D, file_name: String, anchor: Vector2, z: int, alpha
 		sprite.position.x = -(width - anchor.x)
 	if part_name != "":
 		sprite.position += _offset(part_name)
-	sprite.z_index = z
+	sprite.z_as_relative = false
+	sprite.z_index = _part_layer(part_name)
 	sprite.modulate.a = alpha
 	parent.add_child(sprite)
 	return sprite
+
+func _part_layer(part_name: String) -> int:
+	return int(PART_DRAW_ORDER.get(part_name, 0))
 
 func _load_texture(path: String) -> Texture2D:
 	var image := Image.new()
@@ -116,6 +148,7 @@ func _load_texture(path: String) -> Texture2D:
 	return ImageTexture.create_from_image(image)
 
 func _reset_pose() -> void:
+	current_compare_points.clear()
 	body.position = Vector2(0, -132)
 	body.rotation = 0
 	torso.position = Vector2(0, -380) + _offset("torso")
@@ -151,11 +184,136 @@ func _set_leg_pose(thigh: Node2D, knee: Node2D, shin: Node2D, ankle: Node2D, foo
 
 func _pose() -> void:
 	_reset_pose()
+	if action == "walk" and reference_walk_frames.size() >= 2:
+		var cursor := fmod(t, 1.2) / 1.2
+		var ref_pose := _sample_reference_points(cursor)
+		_apply_reference_pose(ref_pose)
+		return
 	var data := _animation_data(action)
 	var duration: float = data["duration"]
 	var cursor: float = fmod(t, duration) / duration
 	var pose: Dictionary = _sample_pose(data["frames"], cursor)
 	_apply_pose(pose)
+
+func _load_reference_walk() -> void:
+	reference_walk_frames.clear()
+	if not FileAccess.file_exists(REF_POINTS_PATH):
+		return
+	var parsed = JSON.parse_string(FileAccess.get_file_as_string(REF_POINTS_PATH))
+	if not (parsed is Dictionary) or not parsed.has("frames") or not (parsed["frames"] is Array):
+		return
+	for raw_frame in parsed["frames"]:
+		if not (raw_frame is Dictionary):
+			continue
+		var frame := {}
+		for key in raw_frame.keys():
+			var value = raw_frame[key]
+			if value is Array and value.size() >= 2:
+				frame[String(key)] = Vector2(float(value[0]), float(value[1]))
+		reference_walk_frames.append(frame)
+
+func _sample_reference_points(cursor: float) -> Dictionary:
+	var last_index: int = reference_walk_frames.size() - 1
+	var frame_pos: float = clamp(cursor, 0.0, 1.0) * float(last_index)
+	var from_index: int = int(floor(frame_pos))
+	var to_index: int = min(from_index + 1, last_index)
+	var local: float = frame_pos - float(from_index)
+	local = local * local * (3.0 - 2.0 * local)
+	var from_frame: Dictionary = reference_walk_frames[from_index]
+	var to_frame: Dictionary = reference_walk_frames[to_index]
+	var result: Dictionary = {}
+	for key in from_frame.keys():
+		if not to_frame.has(key):
+			continue
+		var a: Vector2 = from_frame[key]
+		var b: Vector2 = to_frame[key]
+		result[key] = a.lerp(b, local)
+	return result
+
+func _apply_reference_pose(points: Dictionary) -> void:
+	if not _has_reference_points(points):
+		return
+	current_compare_points.clear()
+	body.position = Vector2.ZERO
+	body.rotation = 0.0
+	body.scale = Vector2(0.42, 0.42)
+	torso.rotation = 0.0
+	head.rotation = 0.0
+	for node in [near_arm, near_forearm, near_hand, far_arm, far_forearm, far_hand, near_thigh, near_knee, near_shin, near_ankle, near_foot, far_thigh, far_knee, far_shin, far_ankle, far_foot]:
+		node.rotation = 0.0
+		node.scale = Vector2.ONE
+
+	var origin: Vector2 = points["hip"]
+	var ground_y: float = max(float(points["near_toe"].y), float(points["far_toe"].y))
+	_cache_reference_compare_points(points, origin, ground_y)
+
+	_set_global_point(torso, _reference_to_rig(points["torso"], origin, ground_y))
+	_set_global_point(head, _reference_to_rig(points["head"], origin, ground_y))
+	head.global_rotation = _angle_between(points["neck"], points["head"])
+
+	_apply_arm_reference(near_arm, near_forearm, near_hand, points, "shoulder", "elbow", "wrist", "hand", origin, ground_y)
+	_apply_arm_reference(far_arm, far_forearm, far_hand, points, "shoulder", "elbow", "wrist", "hand", origin, ground_y)
+	_apply_leg_reference(near_thigh, near_knee, near_shin, near_ankle, near_foot, points, "hip", "near_knee", "near_ankle", "near_toe", origin, ground_y)
+	_apply_leg_reference(far_thigh, far_knee, far_shin, far_ankle, far_foot, points, "hip", "far_knee", "far_ankle", "far_toe", origin, ground_y)
+
+func _has_reference_points(points: Dictionary) -> bool:
+	for key in ["head", "neck", "torso", "shoulder", "elbow", "wrist", "hand", "hip", "near_knee", "near_ankle", "near_toe", "far_knee", "far_ankle", "far_toe"]:
+		if not points.has(key):
+			return false
+	return true
+
+func _reference_to_rig(point: Vector2, origin: Vector2, ground_y: float) -> Vector2:
+	return Vector2((point.x - origin.x) * REF_DISPLAY_SCALE, (point.y - ground_y) * REF_DISPLAY_SCALE)
+
+func _cache_reference_compare_points(points: Dictionary, origin: Vector2, ground_y: float) -> void:
+	current_compare_points.clear()
+	for key in points.keys():
+		if points[key] is Vector2:
+			current_compare_points[String(key)] = to_global(_reference_to_rig(points[key], origin, ground_y))
+
+func _set_global_point(node: Node2D, rig_local: Vector2) -> void:
+	node.global_position = to_global(rig_local)
+
+func _apply_arm_reference(upper: Node2D, forearm: Node2D, hand_node: Node2D, points: Dictionary, shoulder_key: String, elbow_key: String, wrist_key: String, hand_key: String, origin: Vector2, ground_y: float) -> void:
+	var shoulder := _reference_to_rig(points[shoulder_key], origin, ground_y)
+	var elbow := _reference_to_rig(points[elbow_key], origin, ground_y)
+	var wrist := _reference_to_rig(points[wrist_key], origin, ground_y)
+	var hand_tip := _reference_to_rig(points[hand_key], origin, ground_y)
+	_set_global_point(upper, shoulder)
+	upper.global_rotation = (elbow - shoulder).angle()
+	_set_global_point(forearm, elbow)
+	forearm.global_rotation = (wrist - elbow).angle()
+	_set_global_point(hand_node, wrist)
+	hand_node.global_rotation = (hand_tip - wrist).angle()
+	var hand_vector := hand_tip - wrist
+	if hand_vector.length() > 1.0:
+		var global_scale: float = max(0.001, body.global_scale.x)
+		var hand_scale: float = hand_vector.length() / (92.0 * global_scale)
+		hand_node.scale = Vector2(hand_scale, hand_scale)
+
+func _apply_leg_reference(thigh: Node2D, knee: Node2D, shin: Node2D, ankle: Node2D, foot: Node2D, points: Dictionary, hip_key: String, knee_key: String, ankle_key: String, toe_key: String, origin: Vector2, ground_y: float) -> void:
+	var hip := _reference_to_rig(points[hip_key], origin, ground_y)
+	var knee_p := _reference_to_rig(points[knee_key], origin, ground_y)
+	var ankle_p := _reference_to_rig(points[ankle_key], origin, ground_y)
+	var toe_p := _reference_to_rig(points[toe_key], origin, ground_y)
+	_set_global_point(thigh, hip)
+	thigh.global_rotation = (knee_p - hip).angle() - PI * 0.5
+	_set_global_point(knee, knee_p)
+	knee.global_rotation = 0.0
+	_set_global_point(shin, knee_p)
+	shin.global_rotation = (ankle_p - knee_p).angle() - PI * 0.5
+	_set_global_point(ankle, ankle_p)
+	ankle.global_rotation = 0.0
+	_set_global_point(foot, ankle_p)
+	var toe_vector := toe_p - ankle_p
+	if toe_vector.length() > 1.0:
+		foot.global_rotation = toe_vector.angle() - FOOT_TOE_LOCAL.angle()
+		var global_scale: float = max(0.001, body.global_scale.x)
+		var foot_scale: float = toe_vector.length() / (FOOT_TOE_LOCAL.length() * global_scale)
+		foot.scale = Vector2(foot_scale, foot_scale)
+
+func _angle_between(from_point: Vector2, to_point: Vector2) -> float:
+	return (to_point - from_point).angle()
 
 func _animation_data(name: String) -> Dictionary:
 	return {"duration": 1.2, "frames": _walk_frames()}
@@ -250,6 +408,8 @@ func get_bind_point_position(name: String) -> Vector2:
 	return node.global_position
 
 func get_compare_points() -> Dictionary:
+	if current_compare_points.size() > 0:
+		return current_compare_points.duplicate()
 	return {
 		"head": head.global_position,
 		"neck": torso.global_transform * Vector2(36, -126),
@@ -281,6 +441,13 @@ func get_mesh_names() -> Array[String]:
 	for key in part_sprites.keys():
 		names.append(String(key))
 	return names
+
+func get_mesh_layers() -> Dictionary:
+	var layers := {}
+	for key in part_sprites.keys():
+		var sprite: Sprite2D = part_sprites[key]
+		layers[String(key)] = sprite.z_index
+	return layers
 
 func get_mesh_position(name: String) -> Vector2:
 	var sprite: Sprite2D = part_sprites.get(name)

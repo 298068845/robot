@@ -17,7 +17,7 @@
   - 显示静态 rig。
   - 可以拖动骨骼点微调绑定位置。
   - 可以拖动 mesh 微调部件位置。
-  - 点击保存后，绑定数据写入 `user://male_tinpet_binding.json`。
+  - 点击保存后，绑定数据写入 `user://male_tinpet_cutout_bind_pose.json`。
 
 - `动画演示`
   - 显示当前走路骨骼动画。
@@ -60,10 +60,14 @@
   - 构建主界面。
   - 管理 `骨骼绑定` 和 `动画演示` 两个区域。
 
+- `scripts/male_tinpet_cutout_rig.gd`
+  - 当前核心 cutout 骨骼 rig。
+  - 读取 `bind_pose.json` 建立站立绑定姿势、骨骼层级和部件贴图。
+  - 走路动画由 `walk_ref_points.json` 的参考帧骨骼点驱动，旧手写 pose 只保留在历史 sprite rig 中。
+  - 提供骨骼点、部件语义点、渲染快照、站立 pose、走路 pose 和对比点输出。
+
 - `scripts/male_tinpet_sprite_rig.gd`
-  - 当前核心机甲 rig。
-  - 使用切片贴图组成侧身机甲。
-  - 提供骨骼点、mesh 点、保存绑定、读取绑定、走路 pose、对比点输出。
+  - 旧版 sprite-placement rig，保留作历史参考，不再是主界面和评分脚本的默认实现。
 
 - `scripts/binding_editor.gd`
   - 绑定编辑界面。
@@ -139,12 +143,12 @@
    - 当前已有 `walk_ref_points.json`，后续要继续校准它，让点位更准确。
 
 2. 根据参考帧动画生成骨骼动画。
-   - 已完成第一版：`male_tinpet_sprite_rig.gd` 会读取 `walk_ref_points.json`，走路动画优先由参考帧骨骼点驱动。
+   - 已切换到 cutout skeleton 主线：`male_tinpet_cutout_rig.gd` 会读取 `walk_ref_points.json`，走路动画优先由参考帧骨骼点驱动。
    - 每一帧的肩、肘、腕、髋、膝、踝、脚掌都以参考帧点位为目标。
    - 旧的手写角度走路表保留为 fallback，不再是默认驱动来源。
 
 3. 增加贴图层级设计。
-   - 已完成第一版：`male_tinpet_sprite_rig.gd` 中新增 `PART_DRAW_ORDER`，每个 mesh 都有明确 z-index / draw order。
+   - 已切换到 cutout skeleton 主线：`male_tinpet_cutout_rig.gd` 中的 `DRAW_ORDER` 为每个 mesh 设置明确 z-index / draw order。
    - 例如远侧肢体、躯干、近侧肢体、手、脚、头部之间应有稳定层级。
    - Sprite 使用绝对 z 层级，不再靠节点添加顺序隐式决定。
 
@@ -166,7 +170,7 @@
    - 当前已保存每帧主要关节位置。
    - 后续增加每个部件的旋转角、缩放、层级信息。
 
-2. 继续优化 `male_tinpet_sprite_rig.gd` 的参考骨骼点求解。
+2. 继续优化 `male_tinpet_cutout_rig.gd` 的参考骨骼点求解。
    - 当前已用参考点直接摆放骨骼，并支持帧间平滑插值和循环播放。
    - 下一步重点是贴图锚点、脚掌连接和远近肢体层级。
 
@@ -372,3 +376,59 @@ Latest verified output after the fixes:
 - `REST_POSE_SCORE=100.0 points=100.0 hierarchy=100.0 parts=100.0 shape=100.0`
 - `MIN_PART_SCORE=100.0`
 - walk compare average: `100.0`
+
+## 2026-07-01 strict scoring redesign after false-positive 100
+
+The previous scoring system produced a false-positive 100.0 because the animation was driven from `walk_ref_points.json` and then scored primarily against the same reference points. This proved that the labels matched themselves, not that the rendered animation matched the reference frame animation.
+
+Failure lessons:
+- skeleton points are useful diagnostics, but they are not independent evidence when the rig is driven by those same points
+- part semantic landmarks can also self-confirm when endpoints are used both to place and score a part
+- weighted averages allowed high skeleton/semantic scores to hide a very low rendered silhouette score
+- `part_score_report.gd` looked authoritative while excluding the full-frame visual mismatch
+- stand/rest pose validity did not prove that the walk pose kept the same visual character
+
+New scoring rules:
+- final walk score is shortboard-based: per-frame score is `min(visual, skeleton, structure)`
+- pass/fail uses separate hard gates, not only an average:
+  - average score must be at least `85.0`
+  - worst frame score must be at least `75.0`
+  - minimum visual score must be at least `70.0`
+  - minimum skeleton score must be at least `95.0`
+  - minimum structure score must be at least `85.0`
+- visual silhouette is an independent hard gate and can no longer be ignored
+- `part_score_report.gd` now also reports `MIN_VISUAL_SCORE` and fails when the full-frame visual score is below threshold
+
+Current strict result after enabling the redesigned gate:
+- `compare_smoke_test.gd` fails as expected
+- strict average: `45.3`
+- worst frame: `02`
+- `MIN_VISUAL_SCORE=39.9`
+- skeleton and structure still report `100.0`, which is now correctly treated as insufficient because the rendered animation visibly does not match the reference frames
+
+## 2026-07-02 reference-frame contour skeleton update
+
+The standalone `跑步骨骼` view is now driven by reference-frame contour data instead of procedural sine/cosine motion.
+
+Implemented changes:
+- `assets/animation/run_skeleton_20f.json` now defines 14 contour groups: head, torso, left/right upper arm, left/right forearm, left/right hand, left/right thigh, left/right shin, and left/right foot.
+- Every contour group has exactly 20 ordered outline points. The hand is no longer folded into the forearm.
+- `assets/animation/run_skeleton_keyframes.json` stores 10 side-view gait frames based on the supplied contact/down/passing/up/contact reference sheet.
+- `scripts/run_skeleton_animation.gd` reads contour points and keyframe joint coordinates separately, interpolates between the keyframes, and locks the lowest foot outline to the ground line.
+- The visible point radius was reduced so the dots behave as outline samples instead of large blobs that hide the contour.
+- `scripts/render_run_skeleton_preview.gd` validates the data in headless mode by checking group counts, keyframe count, and per-frame ground contact.
+
+Verified with:
+
+```powershell
+$godot = Get-Content .\godot_path.local.txt
+& $godot --headless --path . --check-only --script 'res://scripts/run_skeleton_animation.gd'
+& $godot --headless --path . --script 'res://scripts/render_run_skeleton_preview.gd'
+& $godot --headless --path . --script 'res://scripts/smoke_test.gd'
+```
+
+Latest validation:
+- contour groups: `14`
+- keyframes: `10`
+- every group point count: `20`
+- every sampled keyframe lowest outline y: `0.00`

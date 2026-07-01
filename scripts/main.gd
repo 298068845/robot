@@ -4,8 +4,10 @@ const MaleTinpetSpriteRig = preload("res://scripts/male_tinpet_cutout_rig.gd")
 const BindingEditor = preload("res://scripts/binding_editor.gd")
 const AutoComparePanel = preload("res://scripts/auto_compare_panel.gd")
 const PartCalibrationEditor = preload("res://scripts/part_calibration_editor.gd")
+const RunSkeletonAnimation = preload("res://scripts/run_skeleton_animation.gd")
 
 var rig: Node2D
+var run_skeleton: Node2D
 var binding_editor: Control
 var part_calibration_editor: Control
 var compare_panel: Control
@@ -46,6 +48,12 @@ func _build_ui() -> void:
 	animation_button.pressed.connect(_show_animation)
 	top.add_child(animation_button)
 
+	var run_button := Button.new()
+	run_button.text = "跑步骨骼"
+	run_button.custom_minimum_size = Vector2(116, 40)
+	run_button.pressed.connect(_show_run_skeleton)
+	top.add_child(run_button)
+
 	var calibration_button := Button.new()
 	calibration_button.text = "贴图校准"
 	calibration_button.custom_minimum_size = Vector2(116, 40)
@@ -71,6 +79,10 @@ func _build_ui() -> void:
 	rig = MaleTinpetSpriteRig.new()
 	stage.add_child(rig)
 
+	run_skeleton = RunSkeletonAnimation.new()
+	run_skeleton.visible = false
+	stage.add_child(run_skeleton)
+
 	binding_editor = BindingEditor.new()
 	binding_editor.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	stage.add_child(binding_editor)
@@ -94,6 +106,8 @@ func _layout_stage() -> void:
 	var ground_y: float = max(360.0, stage.size.y - 58.0)
 	if rig != null:
 		rig.position = Vector2(stage.size.x * 0.5 - 24.0, ground_y)
+	if run_skeleton != null:
+		run_skeleton.position = Vector2(stage.size.x * 0.5, ground_y)
 	if ground_line != null:
 		ground_line.position = Vector2(48.0, ground_y + 1.0)
 		ground_line.size = Vector2(max(0.0, stage.size.x - 96.0), 2.0)
@@ -101,6 +115,8 @@ func _layout_stage() -> void:
 func _show_binding_editor() -> void:
 	if rig != null:
 		rig.visible = false
+	if run_skeleton != null:
+		run_skeleton.visible = false
 	if ground_line != null:
 		ground_line.visible = false
 	if binding_editor != null:
@@ -115,6 +131,8 @@ func _show_animation() -> void:
 		binding_editor.visible = false
 	if part_calibration_editor != null:
 		part_calibration_editor.visible = false
+	if run_skeleton != null:
+		run_skeleton.visible = false
 	if rig != null:
 		rig.queue_free()
 	rig = MaleTinpetSpriteRig.new()
@@ -131,6 +149,8 @@ func _show_stand() -> void:
 		binding_editor.visible = false
 	if part_calibration_editor != null:
 		part_calibration_editor.visible = false
+	if run_skeleton != null:
+		run_skeleton.visible = false
 	if rig != null:
 		rig.queue_free()
 	rig = MaleTinpetSpriteRig.new()
@@ -142,9 +162,26 @@ func _show_stand() -> void:
 	if compare_panel != null:
 		compare_panel.visible = false
 
+func _show_run_skeleton() -> void:
+	if rig != null:
+		rig.visible = false
+	if binding_editor != null:
+		binding_editor.visible = false
+	if part_calibration_editor != null:
+		part_calibration_editor.visible = false
+	if compare_panel != null:
+		compare_panel.visible = false
+	if ground_line != null:
+		ground_line.visible = true
+	if run_skeleton != null:
+		run_skeleton.visible = true
+	_layout_stage()
+
 func _show_part_calibration() -> void:
 	if rig != null:
 		rig.visible = false
+	if run_skeleton != null:
+		run_skeleton.visible = false
 	if ground_line != null:
 		ground_line.visible = false
 	if binding_editor != null:

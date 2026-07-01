@@ -1,0 +1,107 @@
+{
+	"schema": "reference_walk_contour_keyframes_v1",
+	"duration": 1.0,
+	"notes": "Ten side-view gait frames based on the provided contact/down/passing/up/contact reference. Coordinates are joint targets used to transform the 20-point contour groups.",
+	"frames": [
+		{
+			"name": "01_left_contact",
+			"joints": {
+				"head": [18, -324], "neck": [12, -284], "chest": [8, -235], "pelvis": [0, -145],
+				"left_shoulder": [0, -260], "left_elbow": [-42, -217], "left_wrist": [-70, -176], "left_hand": [-96, -162],
+				"right_shoulder": [17, -260], "right_elbow": [58, -226], "right_wrist": [91, -188], "right_hand": [116, -173],
+				"left_hip": [-12, -142], "left_knee": [35, -84], "left_ankle": [86, -12], "left_toe": [152, -6],
+				"right_hip": [12, -142], "right_knee": [-50, -90], "right_ankle": [-118, -18], "right_toe": [-56, -6]
+			}
+		},
+		{
+			"name": "04_left_down",
+			"joints": {
+				"head": [17, -310], "neck": [11, -270], "chest": [7, -222], "pelvis": [2, -134],
+				"left_shoulder": [-1, -247], "left_elbow": [-34, -205], "left_wrist": [-58, -166], "left_hand": [-83, -153],
+				"right_shoulder": [16, -247], "right_elbow": [52, -214], "right_wrist": [78, -177], "right_hand": [104, -164],
+				"left_hip": [-10, -132], "left_knee": [22, -75], "left_ankle": [65, -11], "left_toe": [129, -6],
+				"right_hip": [14, -132], "right_knee": [-48, -82], "right_ankle": [-94, -39], "right_toe": [-39, -26]
+			}
+		},
+		{
+			"name": "07_left_passing",
+			"joints": {
+				"head": [16, -318], "neck": [10, -278], "chest": [6, -230], "pelvis": [3, -140],
+				"left_shoulder": [-2, -255], "left_elbow": [-14, -211], "left_wrist": [-18, -170], "left_hand": [-39, -151],
+				"right_shoulder": [15, -255], "right_elbow": [18, -210], "right_wrist": [18, -170], "right_hand": [39, -151],
+				"left_hip": [-9, -138], "left_knee": [5, -72], "left_ankle": [10, -10], "left_toe": [76, -6],
+				"right_hip": [15, -138], "right_knee": [-10, -84], "right_ankle": [-12, -31], "right_toe": [45, -20]
+			}
+		},
+		{
+			"name": "10_left_up",
+			"joints": {
+				"head": [18, -330], "neck": [12, -290], "chest": [8, -242], "pelvis": [5, -151],
+				"left_shoulder": [0, -267], "left_elbow": [18, -222], "left_wrist": [31, -181], "left_hand": [11, -160],
+				"right_shoulder": [17, -267], "right_elbow": [-18, -222], "right_wrist": [-42, -184], "right_hand": [-66, -169],
+				"left_hip": [-7, -149], "left_knee": [-32, -92], "left_ankle": [-53, -33], "left_toe": [7, -20],
+				"right_hip": [17, -149], "right_knee": [45, -86], "right_ankle": [98, -24], "right_toe": [160, -13]
+			}
+		},
+		{
+			"name": "13_right_contact",
+			"joints": {
+				"head": [18, -324], "neck": [12, -284], "chest": [8, -235], "pelvis": [0, -145],
+				"left_shoulder": [0, -260], "left_elbow": [58, -226], "left_wrist": [91, -188], "left_hand": [116, -173],
+				"right_shoulder": [17, -260], "right_elbow": [-42, -217], "right_wrist": [-70, -176], "right_hand": [-96, -162],
+				"left_hip": [-12, -142], "left_knee": [-50, -90], "left_ankle": [-118, -18], "left_toe": [-56, -6],
+				"right_hip": [12, -142], "right_knee": [35, -84], "right_ankle": [86, -12], "right_toe": [152, -6]
+			}
+		},
+		{
+			"name": "13_right_contact_follow",
+			"joints": {
+				"head": [18, -318], "neck": [12, -278], "chest": [8, -230], "pelvis": [1, -141],
+				"left_shoulder": [0, -255], "left_elbow": [51, -221], "left_wrist": [82, -183], "left_hand": [108, -169],
+				"right_shoulder": [17, -255], "right_elbow": [-39, -212], "right_wrist": [-65, -172], "right_hand": [-91, -158],
+				"left_hip": [-11, -139], "left_knee": [-48, -86], "left_ankle": [-105, -26], "left_toe": [-46, -14],
+				"right_hip": [13, -139], "right_knee": [29, -78], "right_ankle": [75, -11], "right_toe": [139, -6]
+			}
+		},
+		{
+			"name": "16_right_down",
+			"joints": {
+				"head": [17, -310], "neck": [11, -270], "chest": [7, -222], "pelvis": [2, -134],
+				"left_shoulder": [-1, -247], "left_elbow": [52, -214], "left_wrist": [78, -177], "left_hand": [104, -164],
+				"right_shoulder": [16, -247], "right_elbow": [-34, -205], "right_wrist": [-58, -166], "right_hand": [-83, -153],
+				"left_hip": [-10, -132], "left_knee": [-48, -82], "left_ankle": [-94, -39], "left_toe": [-39, -26],
+				"right_hip": [14, -132], "right_knee": [22, -75], "right_ankle": [65, -11], "right_toe": [129, -6]
+			}
+		},
+		{
+			"name": "19_right_passing",
+			"joints": {
+				"head": [16, -318], "neck": [10, -278], "chest": [6, -230], "pelvis": [3, -140],
+				"left_shoulder": [-2, -255], "left_elbow": [18, -210], "left_wrist": [18, -170], "left_hand": [39, -151],
+				"right_shoulder": [15, -255], "right_elbow": [-14, -211], "right_wrist": [-18, -170], "right_hand": [-39, -151],
+				"left_hip": [-9, -138], "left_knee": [-10, -84], "left_ankle": [-12, -31], "left_toe": [45, -20],
+				"right_hip": [15, -138], "right_knee": [5, -72], "right_ankle": [10, -10], "right_toe": [76, -6]
+			}
+		},
+		{
+			"name": "22_right_up",
+			"joints": {
+				"head": [18, -330], "neck": [12, -290], "chest": [8, -242], "pelvis": [5, -151],
+				"left_shoulder": [0, -267], "left_elbow": [-18, -222], "left_wrist": [-42, -184], "left_hand": [-66, -169],
+				"right_shoulder": [17, -267], "right_elbow": [18, -222], "right_wrist": [31, -181], "right_hand": [11, -160],
+				"left_hip": [-7, -149], "left_knee": [45, -86], "left_ankle": [98, -24], "left_toe": [160, -13],
+				"right_hip": [17, -149], "right_knee": [-32, -92], "right_ankle": [-53, -33], "right_toe": [7, -20]
+			}
+		},
+		{
+			"name": "25_left_contact",
+			"joints": {
+				"head": [18, -324], "neck": [12, -284], "chest": [8, -235], "pelvis": [0, -145],
+				"left_shoulder": [0, -260], "left_elbow": [-42, -217], "left_wrist": [-70, -176], "left_hand": [-96, -162],
+				"right_shoulder": [17, -260], "right_elbow": [58, -226], "right_wrist": [91, -188], "right_hand": [116, -173],
+				"left_hip": [-12, -142], "left_knee": [35, -84], "left_ankle": [86, -12], "left_toe": [152, -6],
+				"right_hip": [12, -142], "right_knee": [-50, -90], "right_ankle": [-118, -18], "right_toe": [-56, -6]
+			}
+		}
+	]
+}

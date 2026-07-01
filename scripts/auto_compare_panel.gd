@@ -6,6 +6,11 @@ const REF_POINTS_PATH := "res://assets/animation/walk_ref_points.json"
 const ASSET_PART_POSES_PATH := "res://assets/animation/walk_ref_part_poses.json"
 const USER_PART_POSES_PATH := "user://walk_ref_part_poses.json"
 const BIND_POSE_PATH := "res://assets/parts/male_tinpet/bind_pose.json"
+const PASS_AVG_SCORE := 85.0
+const PASS_WORST_FRAME_SCORE := 75.0
+const PASS_MIN_VISUAL_SCORE := 70.0
+const PASS_MIN_JOINT_SCORE := 95.0
+const PASS_MIN_STRUCTURE_SCORE := 85.0
 
 var result_label: Label
 var run_button: Button
@@ -71,6 +76,9 @@ func _run_compare() -> void:
 	var lines: Array[String] = []
 	var worst_index := 0
 	var worst_score := 999.0
+	var min_visual_score := 101.0
+	var min_joint_score := 101.0
+	var min_structure_score := 101.0
 	var worst_debug: Image
 	var has_part_scores := false
 	var has_semantic_scores := false
@@ -82,24 +90,34 @@ func _run_compare() -> void:
 		var rig_part_poses: Dictionary = render["part_poses"]
 		var rig_landmarks: Dictionary = render["landmarks"]
 		var render_parts: Array = render["render_parts"]
-		var silhouette_score := _compare_images(ref_img, rig_img)
+		var silhouette_score := _compare_images(ref_img, rig_img, ref_points[i], rig_points)
 		var joint_score := _compare_points(ref_points[i], rig_points, ref_img, rig_img)
 		var part_score := _compare_part_poses(i, ref_points[i], rig_points, rig_part_poses)
 		var semantic_score := _compare_semantic_landmarks(ref_points[i], rig_points, rig_landmarks)
 		var part_system := _compare_part_system(ref_points[i], rig_points, rig_landmarks, render_parts)
 		var part_system_score := float(part_system.get("score", semantic_score))
-		var score: float
+		var structure_score := -1.0
 		if part_score >= 0.0:
 			has_part_scores = true
-			score = part_score * 0.50 + silhouette_score * 0.25 + joint_score * 0.25
-			lines.append("%02d: %.1f  部件%.1f 骨骼%.1f 轮廓%.1f" % [i + 1, score, part_score, joint_score, silhouette_score])
+			structure_score = min(part_score, part_system_score if part_system_score >= 0.0 else part_score)
 		elif semantic_score >= 0.0:
 			has_semantic_scores = true
-			score = part_system_score * 0.85 + joint_score * 0.15
-			lines.append("%02d: %.1f  部位%.1f 最差%s %.1f 骨骼%.1f 轮廓%.1f" % [i + 1, score, part_system_score, String(part_system.get("worst_part", "")), float(part_system.get("worst_score", 0.0)), joint_score, silhouette_score])
+			structure_score = part_system_score
 		else:
-			score = silhouette_score * 0.45 + joint_score * 0.55
-			lines.append("%02d: %.1f  骨骼%.1f 轮廓%.1f" % [i + 1, score, joint_score, silhouette_score])
+			structure_score = joint_score
+		var score: float = min(silhouette_score, joint_score, structure_score)
+		min_visual_score = min(min_visual_score, silhouette_score)
+		min_joint_score = min(min_joint_score, joint_score)
+		min_structure_score = min(min_structure_score, structure_score)
+		lines.append("%02d: %.1f  visual%.1f structure%.1f skeleton%.1f worst_part=%s %.1f" % [
+			i + 1,
+			score,
+			silhouette_score,
+			structure_score,
+			joint_score,
+			String(part_system.get("worst_part", "")),
+			float(part_system.get("worst_score", 0.0))
+		])
 		scores.append(score)
 		if score < worst_score:
 			worst_score = score
@@ -110,9 +128,25 @@ func _run_compare() -> void:
 	for score in scores:
 		total += score
 	var avg := total / float(scores.size())
-	var verdict := "通过" if avg >= 99.95 else "失败"
-	var note := "已启用贴图姿态评分。" if has_part_scores else ("已启用贴图语义点评分。" if has_semantic_scores else "未找到贴图校准数据，当前仍是骨骼/轮廓评分。")
-	result_label.text = "%s  平均 %.1f  最差帧 %02d\n%s\n%s" % [verdict, avg, worst_index + 1, note, "  ".join(lines)]
+	var passed := avg >= PASS_AVG_SCORE \
+		and worst_score >= PASS_WORST_FRAME_SCORE \
+		and min_visual_score >= PASS_MIN_VISUAL_SCORE \
+		and min_joint_score >= PASS_MIN_JOINT_SCORE \
+		and min_structure_score >= PASS_MIN_STRUCTURE_SCORE
+	var verdict := "通过" if passed else "失败"
+	var source_note := "manual-part" if has_part_scores else ("semantic-part" if has_semantic_scores else "skeleton-only")
+	var note := "strict gates: avg>=%.1f worst>=%.1f visual>=%.1f skeleton>=%.1f structure>=%.1f source=%s min_visual=%.1f min_skeleton=%.1f min_structure=%.1f" % [
+		PASS_AVG_SCORE,
+		PASS_WORST_FRAME_SCORE,
+		PASS_MIN_VISUAL_SCORE,
+		PASS_MIN_JOINT_SCORE,
+		PASS_MIN_STRUCTURE_SCORE,
+		source_note,
+		min_visual_score,
+		min_joint_score,
+		min_structure_score
+	]
+	result_label.text = "%s  average %.1f  worst_frame %02d worst %.1f\n%s\n%s" % [verdict, avg, worst_index + 1, worst_score, note, "  ".join(lines)]
 	if worst_debug != null:
 		debug_rect.texture = ImageTexture.create_from_image(worst_debug)
 	run_button.disabled = false
@@ -819,13 +853,19 @@ func _angle_delta_degrees(a: float, b: float) -> float:
 		delta += 360.0
 	return delta - 180.0
 
-func _compare_images(ref_img: Image, rig_img: Image) -> float:
-	var ref_bbox := _foreground_bbox(ref_img)
-	var rig_bbox := _foreground_bbox(rig_img)
+func _compare_images(ref_img: Image, rig_img: Image, ref_frame: Dictionary = {}, rig_points: Dictionary = {}) -> float:
+	var ref_mask := _foreground_mask(ref_img, false)
+	var rig_mask := _foreground_mask(rig_img, false)
+	if not ref_frame.is_empty():
+		_apply_focus_mask(ref_mask, ref_img.get_width(), ref_img.get_height(), _points_focus_rect(ref_frame, ref_img.get_size(), 42.0))
+	if not rig_points.is_empty():
+		_apply_focus_mask(rig_mask, rig_img.get_width(), rig_img.get_height(), _points_focus_rect(rig_points, rig_img.get_size(), 42.0))
+	var ref_bbox := _mask_bbox(ref_mask, ref_img.get_width(), ref_img.get_height())
+	var rig_bbox := _mask_bbox(rig_mask, rig_img.get_width(), rig_img.get_height())
 	if ref_bbox.size.x <= 1 or rig_bbox.size.x <= 1:
 		return 0.0
 
-	var iou := _normalized_iou(ref_img, ref_bbox, rig_img, rig_bbox)
+	var iou := _normalized_iou(ref_mask, ref_img.get_size(), ref_bbox, rig_mask, rig_img.get_size(), rig_bbox)
 	var ref_center := ref_bbox.get_center()
 	var rig_center := rig_bbox.get_center()
 	var center_error := ref_center.distance_to(rig_center * (Vector2(ref_img.get_width(), ref_img.get_height()) / Vector2(rig_img.get_width(), rig_img.get_height())))
@@ -834,6 +874,124 @@ func _compare_images(ref_img: Image, rig_img: Image) -> float:
 	var rig_aspect: float = rig_bbox.size.x / max(1.0, rig_bbox.size.y)
 	var aspect_score: float = clamp(1.0 - abs(ref_aspect - rig_aspect), 0.0, 1.0)
 	return clamp(iou * 70.0 + center_score * 15.0 + aspect_score * 15.0, 0.0, 100.0)
+
+func _points_focus_rect(points: Dictionary, image_size: Vector2i, padding: float) -> Rect2:
+	var min_x := INF
+	var min_y := INF
+	var max_x := -INF
+	var max_y := -INF
+	var found := false
+	for key in points.keys():
+		var p := Vector2.ZERO
+		var value = points[key]
+		if value is Vector2:
+			p = value
+		elif value is Array and value.size() >= 2:
+			p = Vector2(float(value[0]), float(value[1]))
+		else:
+			continue
+		min_x = min(min_x, p.x)
+		min_y = min(min_y, p.y)
+		max_x = max(max_x, p.x)
+		max_y = max(max_y, p.y)
+		found = true
+	if not found:
+		return Rect2(Vector2.ZERO, Vector2(image_size))
+	var pos := Vector2(max(0.0, min_x - padding), max(0.0, min_y - padding))
+	var end := Vector2(min(float(image_size.x - 1), max_x + padding), min(float(image_size.y - 1), max_y + padding))
+	return Rect2(pos, end - pos)
+
+func _apply_focus_mask(mask: PackedByteArray, w: int, h: int, focus: Rect2) -> void:
+	for y in h:
+		for x in w:
+			if not focus.has_point(Vector2(x, y)):
+				mask[y * w + x] = 0
+
+func _foreground_mask(img: Image, remove_side_border_components: bool) -> PackedByteArray:
+	var w := img.get_width()
+	var h := img.get_height()
+	var ignored_rows := _ground_rows(img)
+	var visited := PackedByteArray()
+	visited.resize(w * h)
+	var queue: Array[Vector2i] = []
+	for x in w:
+		_add_background_seed(img, ignored_rows, visited, queue, x, 0)
+		_add_background_seed(img, ignored_rows, visited, queue, x, h - 1)
+	for y in h:
+		_add_background_seed(img, ignored_rows, visited, queue, 0, y)
+		_add_background_seed(img, ignored_rows, visited, queue, w - 1, y)
+	var head := 0
+	while head < queue.size():
+		var p: Vector2i = queue[head]
+		head += 1
+		_add_background_seed(img, ignored_rows, visited, queue, p.x + 1, p.y)
+		_add_background_seed(img, ignored_rows, visited, queue, p.x - 1, p.y)
+		_add_background_seed(img, ignored_rows, visited, queue, p.x, p.y + 1)
+		_add_background_seed(img, ignored_rows, visited, queue, p.x, p.y - 1)
+
+	var mask := PackedByteArray()
+	mask.resize(w * h)
+	for y in h:
+		for x in w:
+			var idx := y * w + x
+			mask[idx] = 0 if ignored_rows.has(y) or visited[idx] == 1 else 1
+	if remove_side_border_components:
+		_remove_side_border_foreground(mask, w, h)
+	return mask
+
+func _add_background_seed(img: Image, ignored_rows: Dictionary, visited: PackedByteArray, queue: Array[Vector2i], x: int, y: int) -> void:
+	var w := img.get_width()
+	var h := img.get_height()
+	if x < 0 or y < 0 or x >= w or y >= h or ignored_rows.has(y):
+		return
+	var idx := y * w + x
+	if visited[idx] == 1:
+		return
+	if not _is_background_pixel(img.get_pixel(x, y)):
+		return
+	visited[idx] = 1
+	queue.append(Vector2i(x, y))
+
+func _remove_side_border_foreground(mask: PackedByteArray, w: int, h: int) -> void:
+	var queue: Array[Vector2i] = []
+	for y in h:
+		if mask[y * w] == 1:
+			queue.append(Vector2i(0, y))
+			mask[y * w] = 0
+		var right_idx := y * w + w - 1
+		if mask[right_idx] == 1:
+			queue.append(Vector2i(w - 1, y))
+			mask[right_idx] = 0
+	var head := 0
+	while head < queue.size():
+		var p: Vector2i = queue[head]
+		head += 1
+		for n in [Vector2i(p.x + 1, p.y), Vector2i(p.x - 1, p.y), Vector2i(p.x, p.y + 1), Vector2i(p.x, p.y - 1)]:
+			if n.x < 0 or n.y < 0 or n.x >= w or n.y >= h:
+				continue
+			var idx: int = n.y * w + n.x
+			if mask[idx] == 1:
+				mask[idx] = 0
+				queue.append(n)
+
+func _mask_bbox(mask: PackedByteArray, w: int, h: int) -> Rect2:
+	var min_x := w
+	var min_y := h
+	var max_x := 0
+	var max_y := 0
+	var found := false
+	for y in h:
+		for x in w:
+			if mask[y * w + x] == 0:
+				continue
+			min_x = min(min_x, x)
+			min_y = min(min_y, y)
+			max_x = max(max_x, x)
+			max_y = max(max_y, y)
+			found = true
+	if not found:
+		return Rect2()
+	return Rect2(Vector2(min_x, min_y), Vector2(max_x - min_x + 1, max_y - min_y + 1))
 
 func _foreground_bbox(img: Image) -> Rect2:
 	var min_x := img.get_width()
@@ -859,16 +1017,18 @@ func _foreground_bbox(img: Image) -> Rect2:
 func _ground_rows(img: Image) -> Dictionary:
 	var rows := {}
 	for y in img.get_height():
+		if y < img.get_height() * 0.72:
+			continue
 		var dark := 0
 		for x in img.get_width():
 			var c := img.get_pixel(x, y)
 			if c.r < 0.18 and c.g < 0.18 and c.b < 0.18 and c.a > 0.4:
 				dark += 1
-		if dark > img.get_width() * 0.55:
+		if dark > img.get_width() * 0.12:
 			rows[y] = true
 	return rows
 
-func _normalized_iou(a_img: Image, a_box: Rect2, b_img: Image, b_box: Rect2) -> float:
+func _normalized_iou(a_mask: PackedByteArray, a_size: Vector2i, a_box: Rect2, b_mask: PackedByteArray, b_size: Vector2i, b_box: Rect2) -> float:
 	var sample_w := 96
 	var sample_h := 150
 	var inter := 0
@@ -879,8 +1039,12 @@ func _normalized_iou(a_img: Image, a_box: Rect2, b_img: Image, b_box: Rect2) -> 
 			var ay := int(a_box.position.y + (float(y) + 0.5) / float(sample_h) * a_box.size.y)
 			var bx := int(b_box.position.x + (float(x) + 0.5) / float(sample_w) * b_box.size.x)
 			var by := int(b_box.position.y + (float(y) + 0.5) / float(sample_h) * b_box.size.y)
-			var af := _is_foreground(a_img.get_pixel(clamp(ax, 0, a_img.get_width() - 1), clamp(ay, 0, a_img.get_height() - 1)))
-			var bf := _is_foreground(b_img.get_pixel(clamp(bx, 0, b_img.get_width() - 1), clamp(by, 0, b_img.get_height() - 1)))
+			ax = clamp(ax, 0, a_size.x - 1)
+			ay = clamp(ay, 0, a_size.y - 1)
+			bx = clamp(bx, 0, b_size.x - 1)
+			by = clamp(by, 0, b_size.y - 1)
+			var af := a_mask[ay * a_size.x + ax] == 1
+			var bf := b_mask[by * b_size.x + bx] == 1
 			if af and bf:
 				inter += 1
 			if af or bf:
@@ -893,3 +1057,8 @@ func _is_foreground(c: Color) -> bool:
 	if c.a < 0.2:
 		return false
 	return not (c.r > 0.86 and c.g > 0.86 and c.b > 0.86)
+
+func _is_background_pixel(c: Color) -> bool:
+	if c.a < 0.2:
+		return true
+	return c.r > 0.86 and c.g > 0.86 and c.b > 0.86

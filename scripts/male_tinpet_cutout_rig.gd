@@ -4,7 +4,9 @@ const PART_DIR := "res://assets/parts/male_tinpet/"
 const REF_POINTS_PATH := "res://assets/animation/walk_ref_points.json"
 const PART_LANDMARKS_PATH := "res://assets/parts/male_tinpet/part_landmarks.json"
 const BIND_POSE_PATH := "res://assets/parts/male_tinpet/bind_pose.json"
+const USER_BIND_POSE_PATH := "user://male_tinpet_cutout_bind_pose.json"
 const REF_DISPLAY_SCALE := 0.95
+const WALK_DURATION := 1.2
 
 const DRAW_ORDER := {
 	"far_thigh_mesh": -80,
@@ -45,6 +47,7 @@ var skeleton_bones: Dictionary = {}
 var walk_frames: Array = []
 var current_points: Dictionary = {}
 var alpha_bbox_cache: Dictionary = {}
+var edit_mode := false
 
 func _ready() -> void:
 	add_child(root)
@@ -60,6 +63,8 @@ func play_action(next_action: String) -> void:
 	_pose()
 
 func _process(delta: float) -> void:
+	if edit_mode:
+		return
 	t += delta
 	_pose()
 
@@ -119,7 +124,7 @@ func _add_sprite(part_name: String, file_name: String, alpha: float) -> void:
 func _pose() -> void:
 	var points := _stand_points()
 	if action == "walk" and walk_frames.size() >= 2:
-		points = _sample_walk_points(fmod(t, 1.2) / 1.2)
+		points = _sample_walk_points(_walk_cursor())
 	current_points = {}
 	for key in points.keys():
 		current_points[key] = to_global(points[key])
@@ -147,6 +152,7 @@ func _apply_cutout_pose(p: Dictionary) -> void:
 
 	_place_leg("near", p["hip"], p["near_knee"], p["near_ankle"], p["near_toe"], 1.0)
 	_place_leg("far", p["hip"] + Vector2(-8, 4), p["far_knee"], p["far_ankle"], p["far_toe"], 1.0)
+	_apply_dynamic_leg_depth(p)
 	_apply_shape_constraints(p)
 
 func _apply_skeleton_pose(p: Dictionary) -> void:
@@ -180,6 +186,47 @@ func _place_leg(prefix: String, hip: Vector2, knee: Vector2, ankle: Vector2, toe
 	_place_between(prefix + "_shin_mesh", "shin_tube", leg, depth)
 	_place_point(prefix + "_ankle_mesh", "ankle_joint", ankle, 0.38 * depth)
 	_place_foot(prefix + "_foot_mesh", ankle, toe, depth)
+
+func _apply_dynamic_leg_depth(p: Dictionary) -> void:
+	if not p.has("near_toe") or not p.has("far_toe"):
+		return
+	var near_toe: Vector2 = p["near_toe"]
+	var far_toe: Vector2 = p["far_toe"]
+	var near_is_front: bool = near_toe.x >= far_toe.x
+	_set_leg_depth("near", near_is_front)
+	_set_leg_depth("far", not near_is_front)
+
+func _set_leg_depth(prefix: String, is_front: bool) -> void:
+	var names := [
+		prefix + "_thigh_mesh",
+		prefix + "_knee_mesh",
+		prefix + "_shin_mesh",
+		prefix + "_ankle_mesh",
+		prefix + "_foot_mesh"
+	]
+	var front_z := {
+		"_thigh_mesh": 40,
+		"_shin_mesh": 41,
+		"_knee_mesh": 42,
+		"_ankle_mesh": 43,
+		"_foot_mesh": 44
+	}
+	var back_z := {
+		"_thigh_mesh": -80,
+		"_shin_mesh": -79,
+		"_knee_mesh": -78,
+		"_ankle_mesh": -77,
+		"_foot_mesh": -76
+	}
+	for part_name in names:
+		if not sprites.has(part_name):
+			continue
+		var sprite: Sprite2D = sprites[part_name]
+		sprite.modulate.a = 1.0 if is_front else 0.5
+		for suffix in front_z.keys():
+			if part_name.ends_with(suffix):
+				sprite.z_index = int(front_z[suffix] if is_front else back_z[suffix])
+				break
 
 func _place_between(part_name: String, landmark_name: String, targets: Dictionary, depth: float) -> void:
 	var meta := _landmark_meta(landmark_name)
@@ -420,7 +467,8 @@ func _load_bind_pose() -> void:
 	bind_points.clear()
 	part_defs.clear()
 	shape_constraints.clear()
-	var parsed = JSON.parse_string(FileAccess.get_file_as_string(BIND_POSE_PATH))
+	var path := USER_BIND_POSE_PATH if FileAccess.file_exists(USER_BIND_POSE_PATH) else BIND_POSE_PATH
+	var parsed = JSON.parse_string(FileAccess.get_file_as_string(path))
 	if not (parsed is Dictionary):
 		return
 	bind_pose = parsed
@@ -547,3 +595,62 @@ func get_part_landmark_positions() -> Dictionary:
 			part_out[String(landmark_key)] = sprite.global_transform * local
 		out[String(part_name)] = part_out
 	return out
+
+func _walk_cursor() -> float:
+	if t > 0.0 and is_equal_approx(t, WALK_DURATION):
+		return 1.0
+	return fmod(t, WALK_DURATION) / WALK_DURATION
+
+func set_edit_mode(enabled: bool) -> void:
+	edit_mode = enabled
+	if edit_mode:
+		action = "stand"
+		t = 0.0
+		_pose()
+
+func get_bind_point_names() -> Array:
+	var names := bind_points.keys()
+	names.sort()
+	return names
+
+func get_bind_point_position(point_name: String) -> Vector2:
+	if not bind_points.has(point_name):
+		return global_position
+	return to_global(bind_points[point_name])
+
+func move_bind_point_global(point_name: String, global_point: Vector2) -> void:
+	if not bind_points.has(point_name):
+		return
+	bind_points[point_name] = to_local(global_point)
+	if bind_pose.has("points"):
+		bind_pose["points"][point_name] = [bind_points[point_name].x, bind_points[point_name].y]
+	_pose()
+
+func get_mesh_names() -> Array:
+	var names := bones.keys()
+	names.sort()
+	return names
+
+func get_mesh_position(part_name: String) -> Vector2:
+	if not bones.has(part_name):
+		return global_position
+	var bone: Node2D = bones[part_name]
+	return bone.global_position
+
+func move_mesh_global(part_name: String, delta: Vector2) -> void:
+	if not bones.has(part_name):
+		return
+	var bone: Node2D = bones[part_name]
+	bone.global_position += delta
+
+func save_binding() -> void:
+	if not bind_pose.has("points"):
+		bind_pose["points"] = {}
+	for point_name in bind_points.keys():
+		var p: Vector2 = bind_points[point_name]
+		bind_pose["points"][String(point_name)] = [p.x, p.y]
+	var file := FileAccess.open(USER_BIND_POSE_PATH, FileAccess.WRITE)
+	if file == null:
+		push_error("Could not save cutout bind pose: %s" % USER_BIND_POSE_PATH)
+		return
+	file.store_string(JSON.stringify(bind_pose, "\t"))

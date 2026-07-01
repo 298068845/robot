@@ -1,5 +1,17 @@
 # Mech Animation Demo
 
+## Stick Figure Action Editor
+
+The demo includes a `Stick Figure Editor` entry in the top toolbar. It opens a 12-segment stick-figure action editor for quickly blocking out poses and frame sequences.
+
+- The figure is built from colored line segments: head, torso, left/right upper arms, left/right forearms, left/right thighs, left/right shins, and left/right feet.
+- Drag an endpoint to stretch or shorten connected limbs. Shared joints stay connected, so moving a shoulder, hip, knee, elbow, ankle, or neck moves every segment attached to that joint.
+- Drag a segment body to move that segment while keeping its connected endpoints synchronized.
+- The top head joint is drawn as a larger circular head to match the traditional stick-figure silhouette.
+- The left panel manages action frames: play/pause, previous/next frame, playback speed, duplicate current frame, add a template frame, delete, and reset the current frame.
+- Clicking any frame in the action list loads it back into the editor, so earlier actions can be revised after new frames are created.
+- `导出图片` exports the current pose to `.tmp/stick_figure_export.png`.
+
 这是一个 Godot 4 的 2D 机甲动画 demo 项目，目标是用“参考帧动画 + 骨骼挂点 rig”的方式制作更接近人类动作的侧身机甲动画。
 
 ## 项目目标

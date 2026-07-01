@@ -5,18 +5,24 @@ const BindingEditor = preload("res://scripts/binding_editor.gd")
 const AutoComparePanel = preload("res://scripts/auto_compare_panel.gd")
 const PartCalibrationEditor = preload("res://scripts/part_calibration_editor.gd")
 const RunSkeletonAnimation = preload("res://scripts/run_skeleton_animation.gd")
+const ContourCalibrationEditor = preload("res://scripts/contour_calibration_editor.gd")
+const RunnerSkeletonAnimation = preload("res://scripts/runner_skeleton_animation.gd")
+const StickFigureEditor = preload("res://scripts/stick_figure_editor.gd")
 
 var rig: Node2D
 var run_skeleton: Node2D
+var runner_skeleton: Node2D
 var binding_editor: Control
 var part_calibration_editor: Control
+var contour_calibration_editor: Control
+var stick_figure_editor: Control
 var compare_panel: Control
 var stage: Control
 var ground_line: ColorRect
 
 func _ready() -> void:
 	_build_ui()
-	_show_binding_editor()
+	_show_stick_figure_editor()
 
 func _build_ui() -> void:
 	var root := VBoxContainer.new()
@@ -36,6 +42,12 @@ func _build_ui() -> void:
 	bind_button.pressed.connect(_show_binding_editor)
 	top.add_child(bind_button)
 
+	var stick_button := Button.new()
+	stick_button.text = "火柴人编辑器"
+	stick_button.custom_minimum_size = Vector2(132, 40)
+	stick_button.pressed.connect(_show_stick_figure_editor)
+	top.add_child(stick_button)
+
 	var stand_button := Button.new()
 	stand_button.text = "站立展示"
 	stand_button.custom_minimum_size = Vector2(116, 40)
@@ -54,11 +66,23 @@ func _build_ui() -> void:
 	run_button.pressed.connect(_show_run_skeleton)
 	top.add_child(run_button)
 
+	var runner_button := Button.new()
+	runner_button.text = "跑步模板"
+	runner_button.custom_minimum_size = Vector2(116, 40)
+	runner_button.pressed.connect(_show_runner_skeleton)
+	top.add_child(runner_button)
+
 	var calibration_button := Button.new()
 	calibration_button.text = "贴图校准"
 	calibration_button.custom_minimum_size = Vector2(116, 40)
 	calibration_button.pressed.connect(_show_part_calibration)
 	top.add_child(calibration_button)
+
+	var contour_button := Button.new()
+	contour_button.text = "描边校准"
+	contour_button.custom_minimum_size = Vector2(116, 40)
+	contour_button.pressed.connect(_show_contour_calibration)
+	top.add_child(contour_button)
 
 	var panel := PanelContainer.new()
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -83,6 +107,10 @@ func _build_ui() -> void:
 	run_skeleton.visible = false
 	stage.add_child(run_skeleton)
 
+	runner_skeleton = RunnerSkeletonAnimation.new()
+	runner_skeleton.visible = false
+	stage.add_child(runner_skeleton)
+
 	binding_editor = BindingEditor.new()
 	binding_editor.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	stage.add_child(binding_editor)
@@ -91,6 +119,16 @@ func _build_ui() -> void:
 	part_calibration_editor.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	part_calibration_editor.visible = false
 	stage.add_child(part_calibration_editor)
+
+	contour_calibration_editor = ContourCalibrationEditor.new()
+	contour_calibration_editor.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	contour_calibration_editor.visible = false
+	stage.add_child(contour_calibration_editor)
+
+	stick_figure_editor = StickFigureEditor.new()
+	stick_figure_editor.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	stick_figure_editor.visible = false
+	stage.add_child(stick_figure_editor)
 
 	compare_panel = AutoComparePanel.new()
 	compare_panel.position = Vector2(18, 18)
@@ -108,6 +146,8 @@ func _layout_stage() -> void:
 		rig.position = Vector2(stage.size.x * 0.5 - 24.0, ground_y)
 	if run_skeleton != null:
 		run_skeleton.position = Vector2(stage.size.x * 0.5, ground_y)
+	if runner_skeleton != null:
+		runner_skeleton.position = Vector2(stage.size.x * 0.5, ground_y)
 	if ground_line != null:
 		ground_line.position = Vector2(48.0, ground_y + 1.0)
 		ground_line.size = Vector2(max(0.0, stage.size.x - 96.0), 2.0)
@@ -117,12 +157,18 @@ func _show_binding_editor() -> void:
 		rig.visible = false
 	if run_skeleton != null:
 		run_skeleton.visible = false
+	if runner_skeleton != null:
+		runner_skeleton.visible = false
 	if ground_line != null:
 		ground_line.visible = false
 	if binding_editor != null:
 		binding_editor.visible = true
 	if part_calibration_editor != null:
 		part_calibration_editor.visible = false
+	if contour_calibration_editor != null:
+		contour_calibration_editor.visible = false
+	if stick_figure_editor != null:
+		stick_figure_editor.visible = false
 	if compare_panel != null:
 		compare_panel.visible = false
 
@@ -131,8 +177,14 @@ func _show_animation() -> void:
 		binding_editor.visible = false
 	if part_calibration_editor != null:
 		part_calibration_editor.visible = false
+	if contour_calibration_editor != null:
+		contour_calibration_editor.visible = false
+	if stick_figure_editor != null:
+		stick_figure_editor.visible = false
 	if run_skeleton != null:
 		run_skeleton.visible = false
+	if runner_skeleton != null:
+		runner_skeleton.visible = false
 	if rig != null:
 		rig.queue_free()
 	rig = MaleTinpetSpriteRig.new()
@@ -149,8 +201,14 @@ func _show_stand() -> void:
 		binding_editor.visible = false
 	if part_calibration_editor != null:
 		part_calibration_editor.visible = false
+	if contour_calibration_editor != null:
+		contour_calibration_editor.visible = false
+	if stick_figure_editor != null:
+		stick_figure_editor.visible = false
 	if run_skeleton != null:
 		run_skeleton.visible = false
+	if runner_skeleton != null:
+		runner_skeleton.visible = false
 	if rig != null:
 		rig.queue_free()
 	rig = MaleTinpetSpriteRig.new()
@@ -169,15 +227,62 @@ func _show_run_skeleton() -> void:
 		binding_editor.visible = false
 	if part_calibration_editor != null:
 		part_calibration_editor.visible = false
+	if contour_calibration_editor != null:
+		contour_calibration_editor.visible = false
+	if stick_figure_editor != null:
+		stick_figure_editor.visible = false
 	if compare_panel != null:
 		compare_panel.visible = false
 	if ground_line != null:
 		ground_line.visible = true
 	if run_skeleton != null:
 		run_skeleton.visible = true
+	if runner_skeleton != null:
+		runner_skeleton.visible = false
+	_layout_stage()
+
+func _show_runner_skeleton() -> void:
+	if rig != null:
+		rig.visible = false
+	if binding_editor != null:
+		binding_editor.visible = false
+	if part_calibration_editor != null:
+		part_calibration_editor.visible = false
+	if contour_calibration_editor != null:
+		contour_calibration_editor.visible = false
+	if stick_figure_editor != null:
+		stick_figure_editor.visible = false
+	if compare_panel != null:
+		compare_panel.visible = false
+	if ground_line != null:
+		ground_line.visible = true
+	if run_skeleton != null:
+		run_skeleton.visible = false
+	if runner_skeleton != null:
+		runner_skeleton.visible = true
 	_layout_stage()
 
 func _show_part_calibration() -> void:
+	if rig != null:
+		rig.visible = false
+	if run_skeleton != null:
+		run_skeleton.visible = false
+	if runner_skeleton != null:
+		runner_skeleton.visible = false
+	if ground_line != null:
+		ground_line.visible = false
+	if binding_editor != null:
+		binding_editor.visible = false
+	if compare_panel != null:
+		compare_panel.visible = false
+	if part_calibration_editor != null:
+		part_calibration_editor.visible = true
+	if contour_calibration_editor != null:
+		contour_calibration_editor.visible = false
+	if stick_figure_editor != null:
+		stick_figure_editor.visible = false
+
+func _show_contour_calibration() -> void:
 	if rig != null:
 		rig.visible = false
 	if run_skeleton != null:
@@ -189,4 +294,28 @@ func _show_part_calibration() -> void:
 	if compare_panel != null:
 		compare_panel.visible = false
 	if part_calibration_editor != null:
-		part_calibration_editor.visible = true
+		part_calibration_editor.visible = false
+	if contour_calibration_editor != null:
+		contour_calibration_editor.visible = true
+	if stick_figure_editor != null:
+		stick_figure_editor.visible = false
+
+func _show_stick_figure_editor() -> void:
+	if rig != null:
+		rig.visible = false
+	if run_skeleton != null:
+		run_skeleton.visible = false
+	if runner_skeleton != null:
+		runner_skeleton.visible = false
+	if ground_line != null:
+		ground_line.visible = false
+	if binding_editor != null:
+		binding_editor.visible = false
+	if part_calibration_editor != null:
+		part_calibration_editor.visible = false
+	if contour_calibration_editor != null:
+		contour_calibration_editor.visible = false
+	if compare_panel != null:
+		compare_panel.visible = false
+	if stick_figure_editor != null:
+		stick_figure_editor.visible = true

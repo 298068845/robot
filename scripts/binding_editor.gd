@@ -1,6 +1,6 @@
 extends Control
 
-const MaleTinpetSpriteRig = preload("res://scripts/male_tinpet_sprite_rig.gd")
+const MaleTinpetSpriteRig = preload("res://scripts/male_tinpet_cutout_rig.gd")
 
 var rig: Node2D
 var ground_line: ColorRect

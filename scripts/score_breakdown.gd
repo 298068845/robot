@@ -1,6 +1,6 @@
 extends SceneTree
 
-const Rig = preload("res://scripts/male_tinpet_sprite_rig.gd")
+const Rig = preload("res://scripts/male_tinpet_cutout_rig.gd")
 const REF_POINTS_PATH := "res://assets/animation/walk_ref_points.json"
 
 func _initialize() -> void:
@@ -8,6 +8,7 @@ func _initialize() -> void:
 	var rig := Rig.new()
 	get_root().add_child(rig)
 	await process_frame
+	rig.play_action("walk")
 
 	var sums := {}
 	var worst := {}

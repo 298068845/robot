@@ -1,20 +1,35 @@
 extends SceneTree
 
 const AutoComparePanel = preload("res://scripts/auto_compare_panel.gd")
+const PASS_MIN_PART_SCORE := 99.95
+const PASS_MIN_VISUAL_SCORE := 70.0
 
 func _initialize() -> void:
+	print("PART_SCORE_REPORT_START")
 	var panel := AutoComparePanel.new()
 	get_root().add_child(panel)
 	await process_frame
+	await process_frame
 	panel.ref_points = panel._load_ref_points()
+	if panel.ref_points.is_empty():
+		push_error("Part score report could not load reference points.")
+		quit(1)
+		return
 	var ref_sheet := Image.new()
-	ref_sheet.load(panel.REF_SHEET_PATH)
+	if ref_sheet.load(panel.REF_SHEET_PATH) != OK:
+		push_error("Part score report could not load reference sheet.")
+		quit(1)
+		return
 
 	var totals := {}
 	var counts := {}
 	var worst := {}
+	var min_visual_score := 101.0
 	for i in range(panel.ref_points.size()):
+		var ref_img := panel._crop_reference(ref_sheet, i)
 		var render: Dictionary = await panel._render_rig_frame(i)
+		var visual_score: float = panel._compare_images(ref_img, render["image"], panel.ref_points[i], render["points"])
+		min_visual_score = min(min_visual_score, visual_score)
 		var report: Dictionary = panel._compare_part_system(panel.ref_points[i], render["points"], render["landmarks"], render["render_parts"])
 		var parts: Dictionary = report.get("parts", {})
 		for part_name in parts.keys():
@@ -49,4 +64,6 @@ func _initialize() -> void:
 			totals[part_name]["shape"] / float(count)
 		])
 	print("MIN_PART_SCORE=%.1f" % min_score)
-	quit(0 if min_score >= 99.95 else 1)
+	print("MIN_VISUAL_SCORE=%.1f" % min_visual_score)
+	print("PART_REPORT_GATE part>=%.1f visual>=%.1f" % [PASS_MIN_PART_SCORE, PASS_MIN_VISUAL_SCORE])
+	quit(0 if min_score >= PASS_MIN_PART_SCORE and min_visual_score >= PASS_MIN_VISUAL_SCORE else 1)

@@ -432,3 +432,19 @@ Latest validation:
 - keyframes: `10`
 - every group point count: `20`
 - every sampled keyframe lowest outline y: `0.00`
+
+## 2026-07-02 reference silhouette trace correction
+
+The previous contour keyframes still approximated the gait instead of tracing the supplied side-view character silhouette. The `跑步骨骼` view now loads `assets/animation/walk_contact_reference.png` as a translucent reference underlay, so outline-point placement can be checked directly against the character.
+
+Corrections:
+- frame 01 and frame 25 were re-marked from the supplied contact-pose silhouette
+- rear-side arm hangs down beside the body; front-side arm reaches forward
+- rear leg extends backward and front leg extends forward with a narrow side-view stride
+- keyframe x coordinates are scaled to the reference silhouette width instead of using the previous oversized stride
+- visible contour point radius was reduced from `2.2` to `1.2`
+
+Latest validation still reports:
+- contour groups: `14`
+- every group point count: `20`
+- every sampled keyframe lowest outline y: `0.00`

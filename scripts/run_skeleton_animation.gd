@@ -2,10 +2,12 @@ extends Node2D
 
 const SHAPE_PATH := "res://assets/animation/run_skeleton_20f.json"
 const KEYFRAME_PATH := "res://assets/animation/run_skeleton_keyframes.json"
-const POINT_RADIUS := 2.2
-const POINT_OUTLINE_RADIUS := 3.2
-const JOINT_RADIUS := 5.5
-const JOINT_OUTLINE_RADIUS := 7.0
+const REFERENCE_IMAGE_PATH := "res://assets/animation/walk_contact_reference.png"
+const REFERENCE_X_SCALE := 0.62
+const POINT_RADIUS := 1.2
+const POINT_OUTLINE_RADIUS := 1.9
+const JOINT_RADIUS := 3.2
+const JOINT_OUTLINE_RADIUS := 4.4
 
 const ORDER := [
 	"head",
@@ -58,12 +60,14 @@ const LINKS := [
 var groups: Dictionary = {}
 var colors: Dictionary = {}
 var keyframes: Array[Dictionary] = []
+var reference_texture: Texture2D
 var t := 0.0
 var duration := 1.0
 var font := ThemeDB.fallback_font
 
 func _ready() -> void:
 	_load_data()
+	_load_reference_texture()
 	set_process(true)
 
 func _process(delta: float) -> void:
@@ -73,6 +77,7 @@ func _process(delta: float) -> void:
 func _draw() -> void:
 	if groups.is_empty() or keyframes.is_empty():
 		return
+	_draw_reference_image()
 	var pose := _pose_transforms(t / duration)
 
 	for link in LINKS:
@@ -91,9 +96,9 @@ func _draw() -> void:
 			draw_line(world_points[i], world_points[(i + 1) % world_points.size()], color, 1.6)
 		for p in world_points:
 			draw_circle(p, POINT_RADIUS, Color(color.r, color.g, color.b, 0.95))
-			draw_arc(p, POINT_OUTLINE_RADIUS, 0.0, TAU, 12, Color.WHITE, 0.55)
+			draw_arc(p, POINT_OUTLINE_RADIUS, 0.0, TAU, 10, Color.WHITE, 0.45)
 		draw_circle(center, JOINT_RADIUS, color)
-		draw_arc(center, JOINT_OUTLINE_RADIUS, 0.0, TAU, 20, Color.WHITE, 1.2)
+		draw_arc(center, JOINT_OUTLINE_RADIUS, 0.0, TAU, 16, Color.WHITE, 0.8)
 
 	_draw_legend()
 
@@ -110,7 +115,8 @@ func _pose_transforms(cycle_position: float) -> Dictionary:
 func _interpolate_joints(a: Dictionary, b: Dictionary, amount: float) -> Dictionary:
 	var out := {}
 	for key in a.keys():
-		out[key] = Vector2(a[key]).lerp(Vector2(b[key]), amount)
+		var point := Vector2(a[key]).lerp(Vector2(b[key]), amount)
+		out[key] = Vector2(point.x * REFERENCE_X_SCALE, point.y)
 	return out
 
 func _build_pose_from_joints(joints: Dictionary) -> Dictionary:
@@ -222,9 +228,24 @@ func _draw_legend() -> void:
 		draw_string(font, Vector2(x + 16.0, y + 5.0), "%s  20 points" % LABELS[name], HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color.WHITE)
 		y += 19.0
 
+func _draw_reference_image() -> void:
+	if reference_texture == null:
+		return
+	var target_height := 356.0
+	var target_width := target_height * float(reference_texture.get_width()) / float(reference_texture.get_height())
+	var rect := Rect2(Vector2(-target_width * 0.5, -target_height), Vector2(target_width, target_height))
+	draw_texture_rect(reference_texture, rect, false, Color(1.0, 1.0, 1.0, 0.34))
+
 func _load_data() -> void:
 	_load_shapes()
 	_load_keyframes()
+
+func _load_reference_texture() -> void:
+	if not FileAccess.file_exists(REFERENCE_IMAGE_PATH):
+		return
+	var image := Image.new()
+	if image.load(REFERENCE_IMAGE_PATH) == OK:
+		reference_texture = ImageTexture.create_from_image(image)
 
 func _load_shapes() -> void:
 	var parsed = JSON.parse_string(FileAccess.get_file_as_string(SHAPE_PATH))

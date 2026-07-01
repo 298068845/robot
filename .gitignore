@@ -1,5 +1,7 @@
 .godot/
 .import/
+.tmp/
+godot_path.local.txt
 export.cfg
 export_presets.cfg
 *.tmp

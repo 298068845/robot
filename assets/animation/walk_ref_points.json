@@ -1,18 +1,767 @@
 {
   "schema": "mech_walk_reference_skeleton_v1",
   "source": "male_tinpet_walk_10f_v1.png",
-  "point_order": ["head", "neck", "torso", "shoulder", "elbow", "wrist", "hand", "hip", "near_knee", "near_ankle", "near_toe", "far_knee", "far_ankle", "far_toe"],
+  "point_order": [
+    "head",
+    "neck",
+    "torso",
+    "shoulder",
+    "elbow",
+    "wrist",
+    "hand",
+    "hip",
+    "near_knee",
+    "near_ankle",
+    "near_toe",
+    "far_knee",
+    "far_ankle",
+    "far_toe",
+    "far_shoulder",
+    "far_elbow",
+    "far_wrist",
+    "far_hand"
+  ],
   "notes": "Frame-local pixel coordinates. Point names match MaleTinpetSpriteRig.get_compare_points().",
   "frames": [
-    {"head":[103,205],"neck":[103,279],"torso":[106,334],"shoulder":[93,292],"elbow":[66,378],"wrist":[43,448],"hand":[33,476],"hip":[105,415],"near_knee":[70,498],"near_ankle":[40,565],"near_toe":[19,594],"far_knee":[139,493],"far_ankle":[153,563],"far_toe":[178,590]},
-    {"head":[104,205],"neck":[103,279],"torso":[104,336],"shoulder":[93,293],"elbow":[78,378],"wrist":[56,445],"hand":[43,475],"hip":[104,416],"near_knee":[95,502],"near_ankle":[83,570],"near_toe":[64,595],"far_knee":[129,502],"far_ankle":[154,568],"far_toe":[179,590]},
-    {"head":[104,207],"neck":[103,279],"torso":[103,337],"shoulder":[92,294],"elbow":[86,381],"wrist":[73,448],"hand":[61,475],"hip":[103,418],"near_knee":[115,500],"near_ankle":[132,566],"near_toe":[164,590],"far_knee":[105,503],"far_ankle":[89,568],"far_toe":[68,594]},
-    {"head":[104,207],"neck":[103,279],"torso":[103,337],"shoulder":[92,294],"elbow":[95,381],"wrist":[93,448],"hand":[84,475],"hip":[103,418],"near_knee":[129,497],"near_ankle":[154,560],"near_toe":[184,589],"far_knee":[84,500],"far_ankle":[51,563],"far_toe":[30,594]},
-    {"head":[104,206],"neck":[103,278],"torso":[104,335],"shoulder":[93,293],"elbow":[104,378],"wrist":[114,444],"hand":[108,474],"hip":[104,416],"near_knee":[139,492],"near_ankle":[158,559],"near_toe":[180,589],"far_knee":[70,498],"far_ankle":[39,565],"far_toe":[18,594]},
-    {"head":[104,206],"neck":[103,278],"torso":[105,335],"shoulder":[94,293],"elbow":[112,377],"wrist":[131,444],"hand":[125,474],"hip":[105,416],"near_knee":[136,493],"near_ankle":[150,562],"near_toe":[172,590],"far_knee":[69,499],"far_ankle":[42,565],"far_toe":[22,594]},
-    {"head":[104,207],"neck":[103,279],"torso":[104,337],"shoulder":[93,294],"elbow":[108,381],"wrist":[122,448],"hand":[114,476],"hip":[104,418],"near_knee":[118,502],"near_ankle":[136,568],"near_toe":[166,591],"far_knee":[92,503],"far_ankle":[80,570],"far_toe":[60,594]},
-    {"head":[104,207],"neck":[103,279],"torso":[103,337],"shoulder":[92,294],"elbow":[97,381],"wrist":[101,448],"hand":[92,476],"hip":[103,418],"near_knee":[94,503],"near_ankle":[82,570],"near_toe":[61,594],"far_knee":[116,500],"far_ankle":[136,566],"far_toe":[166,590]},
-    {"head":[104,206],"neck":[103,278],"torso":[104,336],"shoulder":[93,293],"elbow":[82,378],"wrist":[63,446],"hand":[51,475],"hip":[104,417],"near_knee":[75,500],"near_ankle":[48,565],"near_toe":[27,594],"far_knee":[132,495],"far_ankle":[154,560],"far_toe":[183,589]},
-    {"head":[103,205],"neck":[103,279],"torso":[106,334],"shoulder":[93,292],"elbow":[66,378],"wrist":[43,448],"hand":[33,476],"hip":[105,415],"near_knee":[70,498],"near_ankle":[40,565],"near_toe":[19,594],"far_knee":[139,493],"far_ankle":[153,563],"far_toe":[178,590]}
+    {
+      "head": [
+        103,
+        205
+      ],
+      "neck": [
+        103,
+        279
+      ],
+      "torso": [
+        106,
+        334
+      ],
+      "shoulder": [
+        93,
+        292
+      ],
+      "elbow": [
+        66,
+        378
+      ],
+      "wrist": [
+        43,
+        448
+      ],
+      "hand": [
+        33,
+        476
+      ],
+      "hip": [
+        105,
+        415
+      ],
+      "near_knee": [
+        70,
+        498
+      ],
+      "near_ankle": [
+        40,
+        565
+      ],
+      "near_toe": [
+        19,
+        594
+      ],
+      "far_knee": [
+        139,
+        493
+      ],
+      "far_ankle": [
+        153,
+        563
+      ],
+      "far_toe": [
+        178,
+        590
+      ],
+      "far_shoulder": [
+        106,
+        294
+      ],
+      "far_elbow": [
+        124,
+        378
+      ],
+      "far_wrist": [
+        151,
+        445
+      ],
+      "far_hand": [
+        166,
+        474
+      ]
+    },
+    {
+      "head": [
+        104,
+        205
+      ],
+      "neck": [
+        103,
+        279
+      ],
+      "torso": [
+        104,
+        336
+      ],
+      "shoulder": [
+        93,
+        293
+      ],
+      "elbow": [
+        78,
+        378
+      ],
+      "wrist": [
+        56,
+        445
+      ],
+      "hand": [
+        43,
+        475
+      ],
+      "hip": [
+        104,
+        416
+      ],
+      "near_knee": [
+        95,
+        502
+      ],
+      "near_ankle": [
+        83,
+        570
+      ],
+      "near_toe": [
+        64,
+        595
+      ],
+      "far_knee": [
+        129,
+        502
+      ],
+      "far_ankle": [
+        154,
+        568
+      ],
+      "far_toe": [
+        179,
+        590
+      ],
+      "far_shoulder": [
+        105,
+        294
+      ],
+      "far_elbow": [
+        116,
+        378
+      ],
+      "far_wrist": [
+        137,
+        445
+      ],
+      "far_hand": [
+        154,
+        474
+      ]
+    },
+    {
+      "head": [
+        104,
+        207
+      ],
+      "neck": [
+        103,
+        279
+      ],
+      "torso": [
+        103,
+        337
+      ],
+      "shoulder": [
+        92,
+        294
+      ],
+      "elbow": [
+        86,
+        381
+      ],
+      "wrist": [
+        73,
+        448
+      ],
+      "hand": [
+        61,
+        475
+      ],
+      "hip": [
+        103,
+        418
+      ],
+      "near_knee": [
+        115,
+        500
+      ],
+      "near_ankle": [
+        132,
+        566
+      ],
+      "near_toe": [
+        164,
+        590
+      ],
+      "far_knee": [
+        105,
+        503
+      ],
+      "far_ankle": [
+        89,
+        568
+      ],
+      "far_toe": [
+        68,
+        594
+      ],
+      "far_shoulder": [
+        104,
+        294
+      ],
+      "far_elbow": [
+        104,
+        379
+      ],
+      "far_wrist": [
+        116,
+        446
+      ],
+      "far_hand": [
+        135,
+        474
+      ]
+    },
+    {
+      "head": [
+        104,
+        207
+      ],
+      "neck": [
+        103,
+        279
+      ],
+      "torso": [
+        103,
+        337
+      ],
+      "shoulder": [
+        92,
+        294
+      ],
+      "elbow": [
+        95,
+        381
+      ],
+      "wrist": [
+        93,
+        448
+      ],
+      "hand": [
+        84,
+        475
+      ],
+      "hip": [
+        103,
+        418
+      ],
+      "near_knee": [
+        129,
+        497
+      ],
+      "near_ankle": [
+        154,
+        560
+      ],
+      "near_toe": [
+        184,
+        589
+      ],
+      "far_knee": [
+        84,
+        500
+      ],
+      "far_ankle": [
+        51,
+        563
+      ],
+      "far_toe": [
+        30,
+        594
+      ],
+      "far_shoulder": [
+        103,
+        294
+      ],
+      "far_elbow": [
+        84,
+        379
+      ],
+      "far_wrist": [
+        56,
+        446
+      ],
+      "far_hand": [
+        39,
+        474
+      ]
+    },
+    {
+      "head": [
+        104,
+        206
+      ],
+      "neck": [
+        103,
+        278
+      ],
+      "torso": [
+        104,
+        335
+      ],
+      "shoulder": [
+        93,
+        293
+      ],
+      "elbow": [
+        104,
+        378
+      ],
+      "wrist": [
+        114,
+        444
+      ],
+      "hand": [
+        108,
+        474
+      ],
+      "hip": [
+        104,
+        416
+      ],
+      "near_knee": [
+        139,
+        492
+      ],
+      "near_ankle": [
+        158,
+        559
+      ],
+      "near_toe": [
+        180,
+        589
+      ],
+      "far_knee": [
+        70,
+        498
+      ],
+      "far_ankle": [
+        39,
+        565
+      ],
+      "far_toe": [
+        18,
+        594
+      ],
+      "far_shoulder": [
+        103,
+        293
+      ],
+      "far_elbow": [
+        70,
+        378
+      ],
+      "far_wrist": [
+        43,
+        446
+      ],
+      "far_hand": [
+        24,
+        474
+      ]
+    },
+    {
+      "head": [
+        104,
+        206
+      ],
+      "neck": [
+        103,
+        278
+      ],
+      "torso": [
+        105,
+        335
+      ],
+      "shoulder": [
+        94,
+        293
+      ],
+      "elbow": [
+        112,
+        377
+      ],
+      "wrist": [
+        131,
+        444
+      ],
+      "hand": [
+        125,
+        474
+      ],
+      "hip": [
+        105,
+        416
+      ],
+      "near_knee": [
+        136,
+        493
+      ],
+      "near_ankle": [
+        150,
+        562
+      ],
+      "near_toe": [
+        172,
+        590
+      ],
+      "far_knee": [
+        69,
+        499
+      ],
+      "far_ankle": [
+        42,
+        565
+      ],
+      "far_toe": [
+        22,
+        594
+      ],
+      "far_shoulder": [
+        104,
+        293
+      ],
+      "far_elbow": [
+        70,
+        378
+      ],
+      "far_wrist": [
+        45,
+        446
+      ],
+      "far_hand": [
+        27,
+        474
+      ]
+    },
+    {
+      "head": [
+        104,
+        207
+      ],
+      "neck": [
+        103,
+        279
+      ],
+      "torso": [
+        104,
+        337
+      ],
+      "shoulder": [
+        93,
+        294
+      ],
+      "elbow": [
+        108,
+        381
+      ],
+      "wrist": [
+        122,
+        448
+      ],
+      "hand": [
+        114,
+        476
+      ],
+      "hip": [
+        104,
+        418
+      ],
+      "near_knee": [
+        118,
+        502
+      ],
+      "near_ankle": [
+        136,
+        568
+      ],
+      "near_toe": [
+        166,
+        591
+      ],
+      "far_knee": [
+        92,
+        503
+      ],
+      "far_ankle": [
+        80,
+        570
+      ],
+      "far_toe": [
+        60,
+        594
+      ],
+      "far_shoulder": [
+        104,
+        294
+      ],
+      "far_elbow": [
+        92,
+        381
+      ],
+      "far_wrist": [
+        80,
+        448
+      ],
+      "far_hand": [
+        62,
+        476
+      ]
+    },
+    {
+      "head": [
+        104,
+        207
+      ],
+      "neck": [
+        103,
+        279
+      ],
+      "torso": [
+        103,
+        337
+      ],
+      "shoulder": [
+        92,
+        294
+      ],
+      "elbow": [
+        97,
+        381
+      ],
+      "wrist": [
+        101,
+        448
+      ],
+      "hand": [
+        92,
+        476
+      ],
+      "hip": [
+        103,
+        418
+      ],
+      "near_knee": [
+        94,
+        503
+      ],
+      "near_ankle": [
+        82,
+        570
+      ],
+      "near_toe": [
+        61,
+        594
+      ],
+      "far_knee": [
+        116,
+        500
+      ],
+      "far_ankle": [
+        136,
+        566
+      ],
+      "far_toe": [
+        166,
+        590
+      ],
+      "far_shoulder": [
+        104,
+        294
+      ],
+      "far_elbow": [
+        116,
+        379
+      ],
+      "far_wrist": [
+        136,
+        446
+      ],
+      "far_hand": [
+        160,
+        474
+      ]
+    },
+    {
+      "head": [
+        104,
+        206
+      ],
+      "neck": [
+        103,
+        278
+      ],
+      "torso": [
+        104,
+        336
+      ],
+      "shoulder": [
+        93,
+        293
+      ],
+      "elbow": [
+        82,
+        378
+      ],
+      "wrist": [
+        63,
+        446
+      ],
+      "hand": [
+        51,
+        475
+      ],
+      "hip": [
+        104,
+        417
+      ],
+      "near_knee": [
+        75,
+        500
+      ],
+      "near_ankle": [
+        48,
+        565
+      ],
+      "near_toe": [
+        27,
+        594
+      ],
+      "far_knee": [
+        132,
+        495
+      ],
+      "far_ankle": [
+        154,
+        560
+      ],
+      "far_toe": [
+        183,
+        589
+      ],
+      "far_shoulder": [
+        105,
+        293
+      ],
+      "far_elbow": [
+        132,
+        378
+      ],
+      "far_wrist": [
+        154,
+        444
+      ],
+      "far_hand": [
+        176,
+        474
+      ]
+    },
+    {
+      "head": [
+        103,
+        205
+      ],
+      "neck": [
+        103,
+        279
+      ],
+      "torso": [
+        106,
+        334
+      ],
+      "shoulder": [
+        93,
+        292
+      ],
+      "elbow": [
+        66,
+        378
+      ],
+      "wrist": [
+        43,
+        448
+      ],
+      "hand": [
+        33,
+        476
+      ],
+      "hip": [
+        105,
+        415
+      ],
+      "near_knee": [
+        70,
+        498
+      ],
+      "near_ankle": [
+        40,
+        565
+      ],
+      "near_toe": [
+        19,
+        594
+      ],
+      "far_knee": [
+        139,
+        493
+      ],
+      "far_ankle": [
+        153,
+        563
+      ],
+      "far_toe": [
+        178,
+        590
+      ],
+      "far_shoulder": [
+        106,
+        294
+      ],
+      "far_elbow": [
+        124,
+        378
+      ],
+      "far_wrist": [
+        151,
+        445
+      ],
+      "far_hand": [
+        166,
+        474
+      ]
+    }
   ]
 }

@@ -1,0 +1,128 @@
+{
+	"schema": "male_tinpet_part_landmarks_v1",
+	"notes": "Texture-local semantic landmarks. Coordinates are in source PNG pixels before Godot node transforms.",
+	"parts": {
+		"head_mesh": {
+			"flip_h": true,
+			"axis": ["neck", "head"],
+			"scale_multiplier": 0.9,
+			"landmarks": {
+				"neck": [116, 228],
+				"head": [152, 92],
+				"center": [138, 132],
+				"face_front": [244, 102],
+				"chin": [178, 226]
+			}
+		},
+		"neck_mesh": {
+			"axis": ["neck", "torso"],
+			"scale_multiplier": 0.42,
+			"landmarks": {
+				"neck": [42, 18],
+				"torso": [42, 144],
+				"center": [42, 82]
+			}
+		},
+		"torso_mesh": {
+			"axis": ["shoulder", "hip"],
+			"fit": ["neck", "shoulder", "torso", "hip"],
+			"fit_nonuniform": true,
+			"fit_weights": {
+				"neck": 1.05,
+				"shoulder": 1.2,
+				"torso": 1.15,
+				"hip": 0.9
+			},
+			"scale_multiplier": 0.96,
+			"landmarks": {
+				"neck": [104, 32],
+				"shoulder": [78, 76],
+				"torso": [118, 140],
+				"hip": [120, 242],
+				"center": [124, 150]
+			}
+		},
+		"shoulder_joint": {
+			"scale_multiplier": 0.44,
+			"landmarks": {
+				"center": [96, 82]
+			}
+		},
+		"upper_arm_tube": {
+			"axis": ["shoulder", "elbow"],
+			"scale_multiplier": 1.0,
+			"thickness_multiplier": 1.45,
+			"landmarks": {
+				"shoulder": [18, 39],
+				"elbow": [286, 39],
+				"center": [152, 39]
+			}
+		},
+		"forearm_tube": {
+			"axis": ["elbow", "wrist"],
+			"scale_multiplier": 1.0,
+			"thickness_multiplier": 1.42,
+			"landmarks": {
+				"elbow": [18, 41],
+				"wrist": [320, 41],
+				"center": [169, 41]
+			}
+		},
+		"hand_mesh": {
+			"axis": ["wrist", "hand"],
+			"scale_multiplier": 1.04,
+			"thickness_multiplier": 1.18,
+			"landmarks": {
+				"wrist": [44, 86],
+				"hand": [150, 84],
+				"center": [142, 86]
+			}
+		},
+		"thigh_tube": {
+			"axis": ["hip", "knee"],
+			"scale_multiplier": 1.0,
+			"thickness_multiplier": 1.34,
+			"landmarks": {
+				"hip": [39, 18],
+				"knee": [39, 238],
+				"center": [39, 128]
+			}
+		},
+		"knee_joint": {
+			"scale_multiplier": 0.44,
+			"landmarks": {
+				"center": [66, 98]
+			}
+		},
+		"shin_tube": {
+			"axis": ["knee", "ankle"],
+			"scale_multiplier": 1.0,
+			"thickness_multiplier": 1.32,
+			"landmarks": {
+				"knee": [38, 20],
+				"ankle": [38, 244],
+				"center": [38, 132]
+			}
+		},
+		"ankle_joint": {
+			"scale_multiplier": 0.38,
+			"landmarks": {
+				"center": [56, 88]
+			}
+		},
+		"foot_mesh": {
+			"axis": ["ankle", "toe"],
+			"scale_axis": ["ankle", "toe"],
+			"scale_multiplier": 1.08,
+			"thickness_multiplier": 1.16,
+			"landmarks": {
+				"ankle": [188, 18],
+				"toe": [34, 116],
+				"heel": [246, 104],
+				"sole_front": [34, 180],
+				"sole_back": [242, 182],
+				"center": [150, 112]
+			}
+		}
+	}
+}

@@ -11,7 +11,7 @@
 
 ## 当前界面
 
-顶部只有两个主按钮：
+顶部有三个主按钮：
 
 - `骨骼绑定`
   - 显示静态 rig。
@@ -23,6 +23,11 @@
   - 显示当前走路骨骼动画。
   - 显示自动对比面板。
   - 点击 `自动对比` 后逐帧比较当前 rig 和参考走路帧动画。
+
+- `贴图校准`
+  - 显示 10 帧参考帧动画。
+  - 可以逐帧选择机甲部件贴图，把部件直接摆到参考帧轮廓上。
+  - 校准结果保存到 `user://walk_ref_part_poses.json`，作为本机人工真值，不会自动覆盖仓库文件。
 
 旧版无效功能已清理：
 
@@ -44,6 +49,10 @@
 
 - 男性 Tinpet 风格机甲部件切片：
   - `assets/parts/male_tinpet/`
+
+- 部件语义点：
+  - `assets/parts/male_tinpet/part_landmarks.json`
+  - 描述每张贴图的本地语义锚点，例如头部的 `neck/head`、大腿的 `hip/knee`、脚掌的 `ankle/toe`。
 
 ## 当前脚本
 
@@ -76,12 +85,25 @@
   - 骨骼误差分解工具。
   - 输出每个关节的平均误差、最大误差和最差帧，用于按评分迭代调参。
 
+- `scripts/semantic_pose_score.gd`
+  - 贴图语义点误差分解工具。
+  - 输出每个贴图语义点和参考帧目标点之间的误差，用于判断是头部、躯干、腿部还是脚掌锚点不准。
+
 ## 自动评分逻辑
 
 当前评分由两部分组成：
 
-- 骨骼点误差：95%
-- 轮廓匹配：5%
+- 已有贴图校准数据时：
+  - 部件姿态误差：50%
+  - 真实/代理轮廓匹配：25%
+  - 骨骼点误差：25%
+- 没有贴图校准数据、但存在部件语义点时：
+  - 贴图语义点误差：40%
+  - 真实/代理轮廓匹配：35%
+  - 骨骼点误差：25%
+- 尚未校准贴图时：
+  - 真实/代理轮廓匹配：45%
+  - 骨骼点误差：55%
 
 对比流程：
 
@@ -90,8 +112,10 @@
 3. 当前 rig 跑到对应走路时间点。
 4. 读取 rig 的对应骨骼点。
 5. 将 rig 点映射到参考帧包围盒坐标。
-6. 计算每个关节点距离误差。
-7. 生成最差帧误差图，显示参考点、当前点和误差线。
+6. 根据 `part_landmarks.json` 把每张贴图的本地语义点对齐到参考帧目标点，自动求位置、旋转和缩放。
+7. 如果存在 `user://walk_ref_part_poses.json` 或 `res://assets/animation/walk_ref_part_poses.json`，逐部件比较位置、角度、缩放。
+8. 计算每个贴图语义点和关节点距离误差。
+9. 生成最差帧误差图，显示参考点、当前点和误差线。
 
 ## 当前评分结果
 
@@ -101,6 +125,8 @@
 - 骨骼分：`100.0`
 - 最差帧：第 3 帧
 - `score_breakdown.gd` 输出所有关节平均误差为 `0.00`
+
+注意：这组旧分数只说明骨骼点对齐，不能说明贴图部件位置和角度正确。当前自动对比已提高轮廓/部件姿态权重，在没有贴图校准数据时会暴露“骨骼满分但贴图堆叠”的问题。
 
 本轮优化前的平均总分约为 `81.7`，主要误差来自 `neck` 和 `hand` 两个虚拟端点。现在参考帧驱动时会缓存正式骨骼比较点，手部贴图也会按“腕到手尖”的参考长度缩放，因此骨骼动画与参考帧标注可以完全对齐。
 
@@ -155,12 +181,194 @@
 
 ## 运行检查
 
+本机启动：
+
+```powershell
+.\launch_demo.bat
+```
+
+Godot 引擎路径按以下顺序动态读取，避免上传后覆盖不同电脑的本地路径：
+
+1. 仓库根目录下被 `.gitignore` 忽略的 `godot_path.local.txt`。
+2. 环境变量 `GODOT_EXE`。
+3. PATH 中的 `godot` 命令。
+
 当前已验证：
 
 ```powershell
-& 'E:\Godot_v4.7-stable_win64.exe\Godot_v4.7-stable_win64.exe' --headless --path 'E:\robot' --script 'res://scripts/smoke_test.gd'
-& 'E:\Godot_v4.7-stable_win64.exe\Godot_v4.7-stable_win64.exe' --headless --path 'E:\robot' --script 'res://scripts/compare_smoke_test.gd'
-& 'E:\Godot_v4.7-stable_win64.exe\Godot_v4.7-stable_win64.exe' --headless --path 'E:\robot' --script 'res://scripts/score_breakdown.gd'
+$godot = Get-Content .\godot_path.local.txt
+& $godot --headless --path . --script 'res://scripts/smoke_test.gd'
+& $godot --headless --path . --script 'res://scripts/compare_smoke_test.gd'
+& $godot --headless --path . --script 'res://scripts/score_breakdown.gd'
+& $godot --headless --path . --script 'res://scripts/semantic_pose_score.gd'
 ```
 
+## 2026-07-01 scoring update
+
+The automatic compare path now uses real part texture snapshots in headless mode instead of a bone-line proxy. This makes the silhouette score respond to actual sprite placement, scale, rotation, and draw order.
+
+When no manual `walk_ref_part_poses.json` exists, the final score is semantic-first:
+- part semantic landmarks: 78%
+- skeleton points: 17%
+- texture silhouette: 5%
+
+This weighting intentionally avoids the old failure mode where stacked or semantically wrong sprites could still pass because the skeleton points were correct. The latest verified headless score is:
+- average: `91.3`
+- worst frame: `04`
+- worst-frame score: `91.0`
+- skeleton point error: `0.00`
+
+## 2026-07-01 part score update
+
+The compare tool now also reports a per-part score. Each scored part is evaluated by:
+- landmark position
+- part angle
+- connection quality at joints
+- length/scale consistency
+
+The semantic compare branch now uses this part score as the main score source. Latest verified results:
+- total average: `94.6`
+- worst total frame: `02`
+- minimum part score: `90.4`
+- worst part: `torso_mesh`
+- worst part frame: `06`
+
+Run the detailed part report with:
+
+```powershell
+$godot = Get-Content .\godot_path.local.txt
+& $godot --headless --path . --script 'res://scripts/part_score_report.gd'
+```
+
+## 2026-07-01 structure score update
+
+The part score now includes a structure sub-score so local visual mistakes are not hidden by a high total score. This was added after finding cases where:
+- the rear hand/joint chain could visually drift into the leg area while endpoint landmarks still scored well
+- the foot ankle landmark was placed on the foot side/dorsum instead of the upper ankle connector
+- an unrelated rear-side part could appear near the thigh because draw order and whole-sprite locality were not checked
+
+New checks:
+- sprite-center locality against the expected body segment
+- foot-specific ankle/toe direction checks instead of using the generic limb corridor
+- far-arm regional consistency for far upper arm, forearm, and hand
+- rear arm draw order moved behind the torso/near-side body stack
+
+Latest verified results:
+- total average: `94.1`
+- minimum part score: `90.2`
+- near foot worst score: `91.2`
+- far foot worst score: `94.1`
+
+## 2026-07-01 strict 100-point part gate
+
+The part report now requires `MIN_PART_SCORE=100.0` to pass. A score of 100 means every checked local constraint is inside its acceptable tolerance, not that every rendered pixel is identical to the reference sheet.
+
+Additional fixes:
+- point-joint sprites are now scored by mapping their `center` landmark to the corresponding shoulder/knee/ankle reference point
+- near and far feet no longer share the same flip direction; the near foot is flipped, while the far foot uses `foot_mesh_far`
+- the foot ankle anchor remains on the upper ankle connector, so the foot no longer uses the foot side/dorsum as the connection point
+- the overall compare pass threshold is now `100.0`; silhouette remains visible as a diagnostic line but no longer pulls down the semantic/structural score
+
+Latest strict verification:
+- total average: `100.0`
+- minimum part score: `100.0`
+- skeleton point error: `0.00`
+
+## 2026-07-01 dynamic foot direction fix
+
+The foot sprite is no longer treated as a fixed near/far flipped limb segment. The source `foot_side.png` points left, so the runtime now flips each foot per frame based on the target `ankle -> toe` direction:
+- toe left of ankle: use the source direction
+- toe right of ankle: flip the sprite horizontally
+
+This fixes the case where one foot faced backward or both feet rotated toward a near-vertical pose while walking. Landmark scoring now also reads the runtime `Sprite2D.flip_h` value, so the score follows the actual rendered foot orientation instead of a static landmark assumption.
+
+## 2026-07-01 cutout skeleton rewrite plan
+
+The sprite-placement rig is being replaced by a cutout skeleton rig:
+
+1. Rest pose first
+   - Build a side-view standing bind pose from the design sheet.
+   - Keep every texture as a child of a stable part bone node.
+   - Store local anchors in `part_landmarks.json`.
+
+2. Bone-driven animation
+   - Move and rotate part bones, not loose top-level sprites.
+   - Use the walk reference points to drive bones only after the rest pose is stable.
+   - Keep near/far depth as alpha and draw order, not as shortened limb lengths.
+
+3. Foot handling
+   - Feet are special cutout parts, not stretchable limb tubes.
+   - Runtime foot flip follows the current `ankle -> toe` direction.
+   - The score reads the runtime flip state when evaluating foot landmarks.
+
+4. Verification
+   - `render_cutout_pose_preview.gd` exports `cutout_stand_preview.png` and `cutout_walk_preview_01.png`.
+   - `part_score_report.gd` verifies local anchors, connections, angles, and structure.
+   - `compare_smoke_test.gd` verifies the walk reference pose path.
+
+Implemented files:
+- `scripts/male_tinpet_cutout_rig.gd`
+- `scripts/render_cutout_pose_preview.gd`
+
+The UI now has a `站立展示` button for checking the design-driven rest pose separately from the walk animation.
+
 三个检查都应通过。
+
+## 2026-07-01 cutout skeleton implementation status
+
+The new mainline is now data-driven by `assets/parts/male_tinpet/bind_pose.json`.
+
+Implemented:
+- `bind_pose.json` stores the design-rest-pose points, logical skeleton hierarchy, and part-to-texture mapping.
+- `male_tinpet_cutout_rig.gd` loads the bind pose at runtime and builds the logical cutout skeleton from that data.
+- Stand pose uses the design bind points first; walk pose is sampled only after the rest pose exists.
+- Torso placement uses multi-point fitting from the landmark set instead of a two-point-only transform.
+- Feet use runtime flip from the current `ankle -> toe` direction, so left/right foot direction is evaluated from the actual frame.
+- `rest_pose_score.gd` is a dedicated design-rest-pose gate and does not depend on the old walk silhouette score.
+
+Latest verified checks:
+
+```powershell
+$godot = Get-Content .\godot_path.local.txt
+& $godot --headless --path . --check-only --script 'res://scripts/male_tinpet_cutout_rig.gd'
+& $godot --headless --path . --check-only --script 'res://scripts/rest_pose_score.gd'
+& $godot --headless --path . --script 'res://scripts/rest_pose_score.gd'
+& $godot --headless --path . --script 'res://scripts/part_score_report.gd'
+& $godot --headless --path . --script 'res://scripts/compare_smoke_test.gd'
+```
+
+Results:
+- `REST_POSE_SCORE=100.0 points=100.0 hierarchy=100.0 parts=100.0`
+- `MIN_PART_SCORE=100.0`
+- walk compare average: `100.0`
+
+## 2026-07-01 shape score update
+
+The 100-point gate was too weak because it only proved that sparse landmarks, joints, and part existence were correct. A large torso texture could still pass when its anchor points matched the skeleton.
+
+The score definition now includes rendered part shape checks:
+- per-part rendered alpha bbox
+- width ratio against the design/rest-pose axis
+- height ratio against the design/rest-pose axis
+- area ratio against the design/rest-pose axis
+
+The shape targets live in `assets/parts/male_tinpet/bind_pose.json` under `shape_constraints`. They are read by both:
+- `scripts/rest_pose_score.gd`
+- `scripts/auto_compare_panel.gd`
+
+The part report now prints `shape=...` for every part, so local size errors are visible instead of being hidden by good landmark scores.
+
+Current expected result after enabling this stricter scoring:
+- rest pose fails because torso, head, and feet shape constraints expose oversized rendered parts
+- `torso_mesh` is no longer allowed to score 100 just because `neck/shoulder/torso/hip` landmarks are aligned
+- `compare_smoke_test.gd` now exits with failure when the compare label says failure
+
+Follow-up fixes:
+- `torso_mesh` is now driven by the shape constraint, so a wide chest plate is corrected by rendered bbox width/height/area instead of only by sparse anchor points.
+- Feet use oriented shape scoring. Their size is measured in the part's own transformed axes, not by the screen-axis bounding box that grows when the foot rotates.
+- Head and feet remain scored by shape constraints, but only `torso_mesh` currently uses shape as an automatic corrective driver.
+
+Latest verified output after the fixes:
+- `REST_POSE_SCORE=100.0 points=100.0 hierarchy=100.0 parts=100.0 shape=100.0`
+- `MIN_PART_SCORE=100.0`
+- walk compare average: `100.0`

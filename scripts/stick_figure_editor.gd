@@ -66,6 +66,7 @@ func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	_load_texture_options()
 	_load_project_or_default()
+	_center_project_in_demo_area()
 	_load_frame(0)
 	_build_ui()
 	resized.connect(queue_redraw)
@@ -706,6 +707,48 @@ func _with_default_joints(frame_parts: Array) -> Array:
 
 func _make_frame(frame_name: String, frame_parts: Array) -> Dictionary:
 	return {"name": frame_name, "parts": _copy_parts(frame_parts)}
+
+func _center_project_in_demo_area() -> void:
+	var target_center := _demo_area_rect().get_center()
+	for group in action_groups:
+		var group_frames: Array = group.get("frames", [])
+		for frame in group_frames:
+			var frame_parts: Array = frame.get("parts", [])
+			var bounds := _parts_bounds(frame_parts)
+			if bounds.size.x <= 0.0 or bounds.size.y <= 0.0:
+				continue
+			_translate_parts(frame_parts, target_center - bounds.get_center())
+	if selected_group >= 0 and selected_group < action_groups.size():
+		frames = action_groups[selected_group].get("frames", [])
+
+func _demo_area_rect() -> Rect2:
+	var viewport_size := size
+	if viewport_size.x <= SIDEBAR_WIDTH or viewport_size.y <= 0.0:
+		var project_size := Vector2(
+			float(ProjectSettings.get_setting("display/window/size/viewport_width", 1280)),
+			float(ProjectSettings.get_setting("display/window/size/viewport_height", 720))
+		)
+		viewport_size = project_size
+	return Rect2(Vector2(SIDEBAR_WIDTH, 0.0), Vector2(maxf(1.0, viewport_size.x - SIDEBAR_WIDTH), maxf(1.0, viewport_size.y)))
+
+func _parts_bounds(frame_parts: Array) -> Rect2:
+	if frame_parts.is_empty():
+		return Rect2()
+	var min_point := Vector2(INF, INF)
+	var max_point := Vector2(-INF, -INF)
+	for part in frame_parts:
+		for key in ["a", "b"]:
+			var point: Vector2 = part[key]
+			min_point.x = minf(min_point.x, point.x)
+			min_point.y = minf(min_point.y, point.y)
+			max_point.x = maxf(max_point.x, point.x)
+			max_point.y = maxf(max_point.y, point.y)
+	return Rect2(min_point, max_point - min_point)
+
+func _translate_parts(frame_parts: Array, delta: Vector2) -> void:
+	for part in frame_parts:
+		part["a"] = Vector2(part["a"]) + delta
+		part["b"] = Vector2(part["b"]) + delta
 
 func _copy_parts(source: Array) -> Array:
 	var copied: Array = []

@@ -1,0 +1,90 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1536" viewBox="0 0 1024 1536">
+  <rect width="1024" height="1536" fill="#ffffff"/>
+  <defs>
+    <style>
+      .line { stroke:#0b0f14; stroke-width:6; stroke-linejoin:round; stroke-linecap:round; }
+      .white { fill:#f4f6f8; }
+      .white2 { fill:#f4f6f8; }
+      .blue { fill:#1265d8; }
+      .dark { fill:#2d333a; }
+      .dark2 { fill:#151a20; }
+      .orange { fill:#f59a1b; }
+      .shine { fill:#ffffff; opacity:.18; }
+    </style>
+  </defs>
+
+  <!-- Right upper arm inner side: same side-facing angle as the limb, no side-hole joint cue -->
+  <g transform="translate(190 96)">
+    <path class="blue line" d="M46,9 C61,-14 104,-17 126,8 L118,27 C97,12 71,13 53,31 Z"/>
+    <path class="white line" d="M38,42 L116,42 C130,42 138,54 136,68 L123,214 C122,231 110,242 94,242 L56,242 C40,242 28,231 27,214 L18,68 C17,54 25,42 38,42 Z"/>
+    <path class="white2" d="M105,52 C122,57 124,71 121,93 L111,210 C110,222 103,231 91,234 L107,234 C118,231 124,221 125,209 L136,68 C138,55 129,43 116,42 Z"/>
+    <rect class="orange line" x="42" y="105" width="12" height="57" rx="6"/>
+    <circle class="dark line" cx="86" cy="34" r="34"/>
+    <circle class="dark line" cx="74" cy="290" r="32"/>
+  </g>
+
+  <!-- Right forearm inner side: same side-facing angle as the limb, no broad blue outer plate -->
+  <g transform="translate(190 420)">
+    <path class="white line" d="M39,48 L125,48 C136,48 143,58 141,70 L126,253 C125,268 115,278 100,278 L61,278 C46,278 36,268 35,253 L22,70 C20,58 28,48 39,48 Z"/>
+    <path class="white2" d="M108,57 C127,62 128,76 126,96 L115,249 C114,261 107,269 95,272 L103,272 C114,272 123,263 124,252 L140,70 C142,58 135,48 125,48 Z"/>
+    <circle class="dark line" cx="82" cy="28" r="32"/>
+    <path class="blue line" d="M35,281 L126,281 L126,326 L35,326 Z"/>
+    <circle class="dark line" cx="80" cy="365" r="30"/>
+  </g>
+
+  <!-- Right clenched fist inner/palm side: white palm plate, four curled fingers, thumb folded across front -->
+  <g transform="translate(150 742)">
+    <path class="blue line" d="M14,58 L47,48 L47,168 L14,158 Z"/>
+    <path class="white line" d="M46,38 L155,38 C181,38 196,57 196,86 L196,142 C196,171 181,190 155,190 L46,190 C35,190 28,181 28,170 L28,58 C28,47 35,38 46,38 Z"/>
+    <path class="shine" d="M62,48 L132,48 C153,48 165,58 169,75 C134,72 94,74 54,86 Z"/>
+    <g>
+      <rect class="dark line" x="173" y="45" width="65" height="32" rx="14"/>
+      <rect class="dark line" x="176" y="79" width="70" height="32" rx="14"/>
+      <rect class="dark line" x="176" y="113" width="68" height="32" rx="14"/>
+      <rect class="dark line" x="172" y="147" width="58" height="32" rx="14"/>
+      <line class="line" x1="194" y1="46" x2="194" y2="178"/>
+    </g>
+    <path class="dark line" d="M126,18 C154,1 191,5 214,27 C224,37 218,53 204,57 L150,72 C134,76 118,66 113,51 C109,39 114,26 126,18 Z"/>
+  </g>
+
+  <!-- Right open hand inner/palm side: side-profile palm, four fingers and thumb -->
+  <g transform="translate(132 1080)">
+    <path class="blue line" d="M18,94 L55,83 L55,202 L18,191 Z"/>
+    <path class="white line" d="M54,66 L158,66 C176,66 188,79 188,97 L188,180 C188,198 176,211 158,211 L54,211 C43,211 35,202 35,191 L35,86 C35,75 43,66 54,66 Z"/>
+    <rect class="dark line" x="181" y="76" width="114" height="30" rx="14"/>
+    <rect class="dark line" x="181" y="114" width="126" height="30" rx="14"/>
+    <rect class="dark line" x="181" y="152" width="118" height="30" rx="14"/>
+    <rect class="dark line" x="181" y="190" width="96" height="30" rx="14"/>
+    <path class="dark line" d="M151,50 C172,20 205,4 236,12 C249,15 253,31 243,41 L185,101 C174,112 157,109 149,96 C140,82 141,64 151,50 Z"/>
+    <line class="line" x1="215" y1="77" x2="215" y2="220"/>
+  </g>
+
+  <!-- Right thigh inner side: strict side slab, joint has no offset socket/side-hole cue -->
+  <g transform="translate(660 92)">
+    <path class="white line" d="M30,48 L111,48 C126,48 136,60 137,76 L150,281 C151,298 140,312 123,312 L50,312 C33,312 22,298 23,281 L35,76 C36,60 15,48 30,48 Z"/>
+    <path class="white2" d="M105,58 C128,63 132,80 133,101 L144,277 C145,291 137,301 124,305 L111,305 C121,298 124,287 123,272 L112,96 C111,78 109,66 105,58 Z"/>
+    <path class="blue line" d="M137,76 L151,279 C152,294 145,306 132,310 L123,310 L119,292 C126,286 130,278 129,267 L118,89 C117,78 124,69 137,76 Z"/>
+    <circle class="dark line" cx="78" cy="34" r="36"/>
+    <circle class="dark line" cx="84" cy="363" r="35"/>
+  </g>
+
+  <!-- Right shin inner side: strict side slab, no side-hole joint cue and no wide blue outer shin plate -->
+  <g transform="translate(660 516)">
+    <path class="white line" d="M37,52 L128,52 C143,52 153,65 152,80 L137,360 C136,377 124,389 107,389 L55,389 C38,389 26,377 25,360 L15,80 C14,65 22,52 37,52 Z"/>
+    <path class="white2" d="M113,62 C134,69 137,84 136,105 L126,353 C125,368 116,379 102,382 L114,382 C126,380 134,369 135,356 L151,80 C152,65 143,53 128,52 Z"/>
+    <path class="blue line" d="M138,84 L151,343 C152,361 144,376 130,384 L123,384 L119,364 C126,357 129,347 128,334 L116,100 C115,88 124,80 138,84 Z"/>
+    <circle class="dark line" cx="83" cy="30" r="35"/>
+    <circle class="dark line" cx="83" cy="440" r="35"/>
+  </g>
+
+  <!-- Right foot inner side: side shoe profile, toe points right, ankle joint has no offset socket/side-hole cue -->
+  <g transform="translate(565 1210)">
+    <circle class="dark line" cx="165" cy="88" r="42"/>
+    <path class="white line" d="M38,187 C63,145 102,107 142,71 C164,51 191,54 211,79 L282,167 L376,185 C397,189 411,206 411,227 L411,255 C411,270 399,282 384,282 L47,282 C29,282 16,267 18,249 L24,216 C26,204 31,195 38,187 Z"/>
+    <path class="blue line" d="M26,239 C96,250 236,252 409,235 L409,263 C409,274 400,282 389,282 L48,282 C30,282 17,268 19,250 Z"/>
+    <path class="blue line" d="M218,118 L287,169 L356,184 L345,207 L282,195 L207,136 Z"/>
+    <path class="white2" d="M304,184 L382,198 C397,201 405,212 405,226 L405,247 C382,244 361,237 341,226 Z"/>
+    <rect class="orange line" x="104" y="164" width="37" height="12" rx="5" transform="rotate(-13 122.5 170)"/>
+    <circle class="dark line" cx="165" cy="88" r="42"/>
+  </g>
+</svg>

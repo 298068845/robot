@@ -8,6 +8,16 @@ The demo includes a `Stick Figure Editor` entry in the top toolbar. It opens a 1
 - Drag an endpoint to stretch or shorten connected limbs. Shared joints stay connected, so moving a shoulder, hip, knee, elbow, ankle, or neck moves every segment attached to that joint.
 - Drag a segment body to move that segment while keeping its connected endpoints synchronized.
 - The top head joint is drawn as a larger circular head to match the traditional stick-figure silhouette.
+- The left editor panel is wider and uses compact grouped controls so texture binding, frame controls, and export controls remain visible without sidebar scrolling.
+- Choose a segment, then add or select an image to apply it directly to that segment. Choosing `无图片` clears the current segment image; `清除图片` removes the selected image from the picker and clears bindings that use it.
+- `添加图片` opens the editor's thumbnail picker. The picker can refresh the current path or choose another folder, and clicking a thumbnail immediately applies that image to the current segment.
+- Each stick segment can bind one part texture from `assets/parts/male_tinpet/manifest.json`; the texture locks to the segment's two endpoints and follows endpoint edits.
+- The first frame is the length template: adjust each segment length there, and later frames keep those segment lengths while changing pose direction and joint placement.
+- Action frames are saved to `user://stick_figure_actions.json` and restored on startup.
+- Animations are organized into action groups. The editor starts with `动画组1`; creating another group starts again from the default pose.
+- `复制组映射` copies texture bindings from another group's first frame into the current group, then applies them across the current group's later frames.
+- Bound textures are semi-transparent by default so the skeleton remains visible while editing. They can be nudged along the segment, nudged perpendicular to it, scaled, rotated, mirrored, assigned a layer, and given per-segment opacity.
+- `映射到后续` copies the first frame's segment-to-texture bindings to every later frame, preserving each texture's relative offset and layer while letting the later stick-frame endpoints drive placement.
 - The left panel manages action frames: play/pause, previous/next frame, playback speed, duplicate current frame, add a template frame, delete, and reset the current frame.
 - Clicking any frame in the action list loads it back into the editor, so earlier actions can be revised after new frames are created.
 - `导出图片` exports the current pose to `.tmp/stick_figure_export.png`.
@@ -23,23 +33,7 @@ The demo includes a `Stick Figure Editor` entry in the top toolbar. It opens a 1
 
 ## 当前界面
 
-顶部有三个主按钮：
-
-- `骨骼绑定`
-  - 显示静态 rig。
-  - 可以拖动骨骼点微调绑定位置。
-  - 可以拖动 mesh 微调部件位置。
-  - 点击保存后，绑定数据写入 `user://male_tinpet_cutout_bind_pose.json`。
-
-- `动画演示`
-  - 显示当前走路骨骼动画。
-  - 显示自动对比面板。
-  - 点击 `自动对比` 后逐帧比较当前 rig 和参考走路帧动画。
-
-- `贴图校准`
-  - 显示 10 帧参考帧动画。
-  - 可以逐帧选择机甲部件贴图，把部件直接摆到参考帧轮廓上。
-  - 校准结果保存到 `user://walk_ref_part_poses.json`，作为本机人工真值，不会自动覆盖仓库文件。
+当前主界面只保留 `火柴人动作编辑器`。旧的骨骼绑定、站立展示、动画演示、跑步骨骼、跑步模板、贴图校准和描边校准入口已从主程序移除。
 
 旧版无效功能已清理：
 

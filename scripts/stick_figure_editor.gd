@@ -11,38 +11,70 @@ const LINE_WIDTH := 8.0
 const HANDLE_RADIUS := 9.0
 const HEAD_HANDLE_RADIUS := 24.0
 const HIT_RADIUS := 16.0
-const SIDEBAR_WIDTH := 292.0
+const SIDEBAR_WIDTH := 500.0
 const EXPORT_SIZE := Vector2i(960, 720)
+const TEXTURE_MANIFEST_PATH := "res://assets/parts/male_tinpet/manifest.json"
+const DEFAULT_TEXTURE_DIR := "res://assets/parts/male_tinpet"
+const SAVE_PATH := "user://stick_figure_actions.json"
 
 var parts: Array = []
 var frames: Array = []
+var action_groups: Array = []
+var selected_group := 0
+var texture_options: Array = []
+var texture_cache := {}
 var selected_part := 0
 var selected_frame := 0
 var drag_part := -1
 var drag_endpoint := -1
 var dragging_segment := false
 var is_playing := false
+var updating_binding_controls := false
 var last_mouse := Vector2.ZERO
 var canvas_rect := Rect2()
 
 var selected_label: Label
 var frame_label: Label
 var export_label: Label
+var side_panel: PanelContainer
 var play_button: Button
 var frame_list: VBoxContainer
 var playback_timer: Timer
 var speed_slider: HSlider
+var action_group_picker: OptionButton
+var source_group_picker: OptionButton
+var bone_picker: OptionButton
+var texture_picker: OptionButton
+var add_image_button: Button
+var clear_image_button: Button
+var map_from_first_button: Button
+var image_picker_popup: Window
+var image_picker_grid: GridContainer
+var image_picker_path_edit: LineEdit
+var image_picker_folder_dialog: FileDialog
+var image_picker_dir := DEFAULT_TEXTURE_DIR
+var image_picker_entries: Array = []
+var offset_along_spin: SpinBox
+var offset_perp_spin: SpinBox
+var layer_spin: SpinBox
+var opacity_spin: SpinBox
+var scale_spin: SpinBox
+var rotation_spin: SpinBox
+var mirror_check: CheckBox
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
-	frames.append(_make_frame("动作 1", _make_default_parts()))
+	_load_texture_options()
+	_load_project_or_default()
 	_load_frame(0)
 	_build_ui()
 	resized.connect(queue_redraw)
+	resized.connect(_layout_sidebar)
 	queue_redraw()
 
 func _build_ui() -> void:
 	var panel := PanelContainer.new()
+	side_panel = panel
 	panel.position = Vector2(16, 16)
 	panel.custom_minimum_size = Vector2(SIDEBAR_WIDTH - 32.0, 0)
 	panel.mouse_filter = Control.MOUSE_FILTER_STOP
@@ -53,20 +85,21 @@ func _build_ui() -> void:
 	style.border_color = PANEL_LINE
 	style.set_border_width_all(1)
 	style.set_corner_radius_all(6)
-	style.content_margin_left = 14
-	style.content_margin_right = 14
-	style.content_margin_top = 14
-	style.content_margin_bottom = 14
+	style.content_margin_left = 10
+	style.content_margin_right = 10
+	style.content_margin_top = 10
+	style.content_margin_bottom = 10
 	panel.add_theme_stylebox_override("panel", style)
 
 	var root := VBoxContainer.new()
-	root.add_theme_constant_override("separation", 10)
+	root.add_theme_constant_override("separation", 4)
+	root.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	panel.add_child(root)
 
 	var title := Label.new()
 	title.text = "火柴人动作编辑器"
 	title.add_theme_color_override("font_color", Color.WHITE)
-	title.add_theme_font_size_override("font_size", 21)
+	title.add_theme_font_size_override("font_size", 18)
 	root.add_child(title)
 
 	frame_label = Label.new()
@@ -78,25 +111,63 @@ func _build_ui() -> void:
 	selected_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	root.add_child(selected_label)
 
-	var playback_row := HBoxContainer.new()
-	playback_row.add_theme_constant_override("separation", 8)
+	var group_grid := GridContainer.new()
+	group_grid.columns = 3
+	group_grid.add_theme_constant_override("h_separation", 6)
+	group_grid.add_theme_constant_override("v_separation", 4)
+	root.add_child(group_grid)
+
+	action_group_picker = OptionButton.new()
+	action_group_picker.custom_minimum_size = Vector2(0, 30)
+	action_group_picker.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	action_group_picker.item_selected.connect(_select_action_group)
+	group_grid.add_child(action_group_picker)
+
+	var add_group_button := Button.new()
+	add_group_button.text = "新建组"
+	add_group_button.custom_minimum_size = Vector2(0, 26)
+	add_group_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	add_group_button.pressed.connect(_add_action_group)
+	group_grid.add_child(add_group_button)
+
+	var delete_group_button := Button.new()
+	delete_group_button.text = "删除组"
+	delete_group_button.custom_minimum_size = Vector2(0, 26)
+	delete_group_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	delete_group_button.pressed.connect(_delete_action_group)
+	group_grid.add_child(delete_group_button)
+
+	bone_picker = OptionButton.new()
+	bone_picker.custom_minimum_size = Vector2(0, 32)
+	for part in parts:
+		bone_picker.add_item(part["name"])
+	bone_picker.item_selected.connect(_select_bone_part)
+	root.add_child(bone_picker)
+
+	var playback_row := GridContainer.new()
+	playback_row.columns = 3
+	playback_row.add_theme_constant_override("h_separation", 6)
+	playback_row.add_theme_constant_override("v_separation", 4)
 	root.add_child(playback_row)
 
 	play_button = Button.new()
 	play_button.text = "播放"
-	play_button.custom_minimum_size = Vector2(72, 34)
+	play_button.custom_minimum_size = Vector2(0, 26)
+	play_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	play_button.pressed.connect(_toggle_playback)
 	playback_row.add_child(play_button)
 
 	var prev_button := Button.new()
 	prev_button.text = "上一帧"
-	prev_button.custom_minimum_size = Vector2(76, 34)
+	prev_button.custom_minimum_size = Vector2(0, 26)
+	prev_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	prev_button.pressed.connect(_select_previous_frame)
 	playback_row.add_child(prev_button)
 
 	var next_button := Button.new()
 	next_button.text = "下一帧"
-	next_button.custom_minimum_size = Vector2(76, 34)
+	next_button.custom_minimum_size = Vector2(0, 26)
+	next_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	next_button.pressed.connect(_select_next_frame)
 	playback_row.add_child(next_button)
 
@@ -114,49 +185,136 @@ func _build_ui() -> void:
 	speed_slider.value_changed.connect(_set_playback_speed)
 	root.add_child(speed_slider)
 
-	var edit_row := HBoxContainer.new()
-	edit_row.add_theme_constant_override("separation", 8)
-	root.add_child(edit_row)
+	var frame_action_grid := GridContainer.new()
+	frame_action_grid.columns = 5
+	frame_action_grid.add_theme_constant_override("h_separation", 6)
+	frame_action_grid.add_theme_constant_override("v_separation", 4)
+	root.add_child(frame_action_grid)
 
 	var duplicate_button := Button.new()
-	duplicate_button.text = "复制当前"
-	duplicate_button.custom_minimum_size = Vector2(86, 34)
+	duplicate_button.text = "复制"
+	duplicate_button.custom_minimum_size = Vector2(0, 26)
+	duplicate_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	duplicate_button.pressed.connect(_duplicate_frame)
-	edit_row.add_child(duplicate_button)
+	frame_action_grid.add_child(duplicate_button)
 
 	var add_button := Button.new()
-	add_button.text = "新增模板"
-	add_button.custom_minimum_size = Vector2(86, 34)
+	add_button.text = "新增"
+	add_button.custom_minimum_size = Vector2(0, 26)
+	add_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	add_button.pressed.connect(_add_default_frame)
-	edit_row.add_child(add_button)
+	frame_action_grid.add_child(add_button)
 
 	var delete_button := Button.new()
 	delete_button.text = "删除"
-	delete_button.custom_minimum_size = Vector2(58, 34)
+	delete_button.custom_minimum_size = Vector2(0, 26)
+	delete_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	delete_button.pressed.connect(_delete_frame)
-	edit_row.add_child(delete_button)
-
-	var output_row := HBoxContainer.new()
-	output_row.add_theme_constant_override("separation", 8)
-	root.add_child(output_row)
+	frame_action_grid.add_child(delete_button)
 
 	var reset_button := Button.new()
-	reset_button.text = "重置当前"
-	reset_button.custom_minimum_size = Vector2(86, 34)
+	reset_button.text = "重置"
+	reset_button.custom_minimum_size = Vector2(0, 26)
+	reset_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	reset_button.pressed.connect(_reset_current_frame)
-	output_row.add_child(reset_button)
+	frame_action_grid.add_child(reset_button)
 
 	var export_button := Button.new()
-	export_button.text = "导出图片"
-	export_button.custom_minimum_size = Vector2(98, 34)
+	export_button.text = "导出"
+	export_button.custom_minimum_size = Vector2(0, 26)
+	export_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	export_button.pressed.connect(_export_png)
-	output_row.add_child(export_button)
+	frame_action_grid.add_child(export_button)
 
-	var hint := Label.new()
-	hint.text = "右侧画布：拖端点拉伸/缩短；拖线段移动。点击左侧动作可返回修改。"
-	hint.add_theme_color_override("font_color", Color(0.68, 0.72, 0.78))
-	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	root.add_child(hint)
+	var binding_title := Label.new()
+	binding_title.text = "线条贴图绑定"
+	binding_title.add_theme_color_override("font_color", Color.WHITE)
+	binding_title.add_theme_font_size_override("font_size", 16)
+	root.add_child(binding_title)
+
+	texture_picker = OptionButton.new()
+	texture_picker.custom_minimum_size = Vector2(0, 32)
+	for option in texture_options:
+		texture_picker.add_item(option["name"])
+	texture_picker.item_selected.connect(_select_binding_texture)
+	root.add_child(texture_picker)
+
+	var image_action_grid := GridContainer.new()
+	image_action_grid.columns = 3
+	image_action_grid.add_theme_constant_override("h_separation", 6)
+	image_action_grid.add_theme_constant_override("v_separation", 4)
+	root.add_child(image_action_grid)
+
+	add_image_button = Button.new()
+	add_image_button.text = "添加图片"
+	add_image_button.custom_minimum_size = Vector2(0, 26)
+	add_image_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	add_image_button.pressed.connect(_open_image_file_dialog)
+	image_action_grid.add_child(add_image_button)
+
+	clear_image_button = Button.new()
+	clear_image_button.text = "清除图片"
+	clear_image_button.custom_minimum_size = Vector2(0, 26)
+	clear_image_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	clear_image_button.pressed.connect(_clear_selected_texture_option)
+	image_action_grid.add_child(clear_image_button)
+
+	map_from_first_button = Button.new()
+	map_from_first_button.text = "映射到后续"
+	map_from_first_button.custom_minimum_size = Vector2(0, 26)
+	map_from_first_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	map_from_first_button.pressed.connect(_map_first_frame_bindings_to_later_frames)
+	image_action_grid.add_child(map_from_first_button)
+
+	source_group_picker = OptionButton.new()
+	source_group_picker.custom_minimum_size = Vector2(0, 30)
+	source_group_picker.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	image_action_grid.add_child(source_group_picker)
+
+	var copy_source_button := Button.new()
+	copy_source_button.text = "复制组映射"
+	copy_source_button.custom_minimum_size = Vector2(0, 26)
+	copy_source_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	copy_source_button.pressed.connect(_copy_first_frame_mapping_from_source_group)
+	image_action_grid.add_child(copy_source_button)
+
+	var adjust_grid := GridContainer.new()
+	adjust_grid.columns = 3
+	adjust_grid.add_theme_constant_override("h_separation", 8)
+	adjust_grid.add_theme_constant_override("v_separation", 4)
+	root.add_child(adjust_grid)
+
+	offset_along_spin = _make_spin_box(-160.0, 160.0, 1.0)
+	offset_along_spin.value_changed.connect(_set_binding_offset_along)
+	_add_labeled_control(adjust_grid, "沿线偏移", offset_along_spin)
+
+	offset_perp_spin = _make_spin_box(-160.0, 160.0, 1.0)
+	offset_perp_spin.value_changed.connect(_set_binding_offset_perp)
+	_add_labeled_control(adjust_grid, "垂直偏移", offset_perp_spin)
+
+	layer_spin = _make_spin_box(-20.0, 20.0, 1.0)
+	layer_spin.value_changed.connect(_set_binding_layer)
+	_add_labeled_control(adjust_grid, "图层", layer_spin)
+
+	opacity_spin = _make_spin_box(0.15, 1.0, 0.05)
+	opacity_spin.value = 0.45
+	opacity_spin.value_changed.connect(_set_binding_opacity)
+	_add_labeled_control(adjust_grid, "透明度", opacity_spin)
+
+	scale_spin = _make_spin_box(0.1, 4.0, 0.05)
+	scale_spin.value = 1.0
+	scale_spin.value_changed.connect(_set_binding_scale)
+	_add_labeled_control(adjust_grid, "缩放", scale_spin)
+
+	rotation_spin = _make_spin_box(-180.0, 180.0, 1.0)
+	rotation_spin.value = 0.0
+	rotation_spin.value_changed.connect(_set_binding_rotation)
+	_add_labeled_control(adjust_grid, "旋转", rotation_spin)
+
+	mirror_check = CheckBox.new()
+	mirror_check.text = "水平镜像"
+	mirror_check.toggled.connect(_set_binding_mirror)
+	root.add_child(mirror_check)
 
 	var frame_title := Label.new()
 	frame_title.text = "动作顺序"
@@ -165,7 +323,7 @@ func _build_ui() -> void:
 	root.add_child(frame_title)
 
 	var scroll := ScrollContainer.new()
-	scroll.custom_minimum_size = Vector2(0, 164)
+	scroll.custom_minimum_size = Vector2(0, 56)
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	root.add_child(scroll)
 
@@ -184,7 +342,327 @@ func _build_ui() -> void:
 	playback_timer.timeout.connect(_advance_playback)
 	add_child(playback_timer)
 
+	_build_image_picker_popup()
+
+	_layout_sidebar()
+	_rebuild_action_group_pickers()
 	_update_ui()
+
+func _make_spin_box(minimum: float, maximum: float, step: float) -> SpinBox:
+	var spin := SpinBox.new()
+	spin.min_value = minimum
+	spin.max_value = maximum
+	spin.step = step
+	spin.custom_minimum_size = Vector2(76, 26)
+	return spin
+
+func _add_labeled_control(root: Container, label_text: String, control: Control) -> void:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 4)
+	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	root.add_child(row)
+
+	var label := Label.new()
+	label.text = label_text
+	label.custom_minimum_size = Vector2(56, 0)
+	label.add_theme_color_override("font_color", Color(0.78, 0.82, 0.88))
+	row.add_child(label)
+	control.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(control)
+
+func _layout_sidebar() -> void:
+	if side_panel == null:
+		return
+	side_panel.size = Vector2(SIDEBAR_WIDTH - 32.0, maxf(120.0, size.y - 32.0))
+
+func _build_image_picker_popup() -> void:
+	image_picker_popup = Window.new()
+	image_picker_popup.title = "选择图片"
+	image_picker_popup.size = Vector2i(640, 420)
+	image_picker_popup.unresizable = false
+	image_picker_popup.visible = false
+	add_child(image_picker_popup)
+
+	var root := VBoxContainer.new()
+	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	root.add_theme_constant_override("separation", 8)
+	image_picker_popup.add_child(root)
+
+	var header := HBoxContainer.new()
+	header.add_theme_constant_override("separation", 8)
+	root.add_child(header)
+
+	var title := Label.new()
+	title.text = "点击缩略图，直接应用到当前骨骼"
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	header.add_child(title)
+
+	var close_button := Button.new()
+	close_button.text = "关闭"
+	close_button.pressed.connect(image_picker_popup.hide)
+	header.add_child(close_button)
+
+	var path_row := HBoxContainer.new()
+	path_row.add_theme_constant_override("separation", 8)
+	root.add_child(path_row)
+
+	image_picker_path_edit = LineEdit.new()
+	image_picker_path_edit.text = image_picker_dir
+	image_picker_path_edit.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	image_picker_path_edit.text_submitted.connect(_set_image_picker_dir)
+	path_row.add_child(image_picker_path_edit)
+
+	var refresh_button := Button.new()
+	refresh_button.text = "刷新"
+	refresh_button.pressed.connect(_refresh_image_picker_dir)
+	path_row.add_child(refresh_button)
+
+	var folder_button := Button.new()
+	folder_button.text = "选择文件夹"
+	folder_button.pressed.connect(_open_image_picker_folder_dialog)
+	path_row.add_child(folder_button)
+
+	var scroll := ScrollContainer.new()
+	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	root.add_child(scroll)
+
+	image_picker_grid = GridContainer.new()
+	image_picker_grid.columns = 5
+	image_picker_grid.add_theme_constant_override("h_separation", 10)
+	image_picker_grid.add_theme_constant_override("v_separation", 10)
+	scroll.add_child(image_picker_grid)
+
+	image_picker_folder_dialog = FileDialog.new()
+	image_picker_folder_dialog.title = "选择图片文件夹"
+	image_picker_folder_dialog.file_mode = FileDialog.FILE_MODE_OPEN_DIR
+	image_picker_folder_dialog.access = FileDialog.ACCESS_FILESYSTEM
+	image_picker_folder_dialog.dir_selected.connect(_set_image_picker_dir)
+	add_child(image_picker_folder_dialog)
+
+func _rebuild_image_picker_grid() -> void:
+	if image_picker_grid == null:
+		return
+	for child in image_picker_grid.get_children():
+		child.queue_free()
+	image_picker_entries = _scan_image_picker_dir(image_picker_dir)
+	if image_picker_entries.is_empty():
+		var empty_label := Label.new()
+		empty_label.text = "当前文件夹没有 PNG/JPG/WebP 图片"
+		empty_label.add_theme_color_override("font_color", Color(0.78, 0.82, 0.88))
+		image_picker_grid.add_child(empty_label)
+		return
+	for entry in image_picker_entries:
+		var path := String(entry.get("path", ""))
+		var texture := _get_texture_for_path(path)
+		var button := Button.new()
+		button.custom_minimum_size = Vector2(112, 116)
+		button.text = String(entry.get("name", ""))
+		button.clip_text = true
+		button.expand_icon = true
+		button.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		button.vertical_icon_alignment = VERTICAL_ALIGNMENT_TOP
+		if texture != null:
+			button.icon = texture
+		else:
+			button.text = "%s\n加载失败" % String(entry.get("name", ""))
+		button.pressed.connect(_pick_image_from_popup.bind(path))
+		image_picker_grid.add_child(button)
+
+func _pick_image_from_popup(path: String) -> void:
+	_add_custom_texture_option(path)
+	if image_picker_popup != null:
+		image_picker_popup.hide()
+
+func _scan_image_picker_dir(dir_path: String) -> Array:
+	var entries: Array = []
+	var dir := DirAccess.open(dir_path)
+	if dir == null:
+		return entries
+	dir.list_dir_begin()
+	while true:
+		var file_name := dir.get_next()
+		if file_name == "":
+			break
+		if dir.current_is_dir():
+			continue
+		var extension := file_name.get_extension().to_lower()
+		if not (extension in ["png", "jpg", "jpeg", "webp"]):
+			continue
+		var path := _join_path(dir_path, file_name)
+		entries.append({"name": file_name.get_basename(), "path": path})
+	dir.list_dir_end()
+	entries.sort_custom(_sort_image_entries)
+	return entries
+
+func _sort_image_entries(a: Dictionary, b: Dictionary) -> bool:
+	return String(a.get("name", "")).naturalnocasecmp_to(String(b.get("name", ""))) < 0
+
+func _join_path(dir_path: String, file_name: String) -> String:
+	var separator := "" if dir_path.ends_with("/") or dir_path.ends_with("\\") else "/"
+	return "%s%s%s" % [dir_path, separator, file_name]
+
+func _set_image_picker_dir(dir_path: String) -> void:
+	if dir_path.strip_edges() == "":
+		return
+	image_picker_dir = dir_path.strip_edges()
+	if image_picker_path_edit != null:
+		image_picker_path_edit.text = image_picker_dir
+	_rebuild_image_picker_grid()
+	_save_project()
+
+func _refresh_image_picker_dir() -> void:
+	if image_picker_path_edit != null:
+		_set_image_picker_dir(image_picker_path_edit.text)
+	else:
+		_rebuild_image_picker_grid()
+
+func _open_image_picker_folder_dialog() -> void:
+	if image_picker_folder_dialog == null:
+		return
+	image_picker_folder_dialog.popup_centered_ratio(0.72)
+
+func _select_bone_part(index: int) -> void:
+	if updating_binding_controls:
+		return
+	if index < 0 or index >= parts.size():
+		return
+	_save_current_frame()
+	selected_part = index
+	_update_ui()
+	queue_redraw()
+
+func _open_image_file_dialog() -> void:
+	if image_picker_popup == null:
+		return
+	if image_picker_path_edit != null:
+		image_picker_path_edit.text = image_picker_dir
+	_rebuild_image_picker_grid()
+	image_picker_popup.popup_centered()
+
+func _add_custom_texture_option(path: String) -> void:
+	var file_name := path.get_file()
+	var display_name := file_name.get_basename()
+	for i in range(texture_options.size()):
+		if String(texture_options[i].get("path", "")) == path:
+			_select_texture_option(i)
+			if export_label != null:
+				export_label.text = "已将图片应用到当前骨骼。"
+			return
+	texture_options.append({"name": display_name, "path": path})
+	if texture_picker != null:
+		texture_picker.add_item(display_name)
+	_select_texture_option(texture_options.size() - 1)
+	if export_label != null:
+		export_label.text = "已添加图片：%s，并应用到当前骨骼。" % display_name
+
+func _select_texture_option(index: int) -> void:
+	if texture_picker == null or index < 0 or index >= texture_options.size():
+		return
+	texture_picker.select(index)
+	_apply_selected_texture_to_current_part()
+	_update_binding_controls()
+
+func _load_project_or_default() -> void:
+	if _load_project():
+		return
+	action_groups = [_make_action_group("动画组1")]
+	selected_group = 0
+	frames = action_groups[0]["frames"]
+	_save_project()
+
+func _make_action_group(group_name: String) -> Dictionary:
+	return {"name": group_name, "frames": [_make_frame("动作 1", _make_default_parts())]}
+
+func _load_project() -> bool:
+	if not FileAccess.file_exists(SAVE_PATH):
+		return false
+	var raw := FileAccess.get_file_as_string(SAVE_PATH)
+	var parsed = JSON.parse_string(raw)
+	if not parsed is Dictionary:
+		return false
+	action_groups.clear()
+	var saved_options = parsed.get("texture_options", [])
+	if saved_options is Array and not saved_options.is_empty():
+		texture_options.clear()
+		for option in saved_options:
+			if option is Dictionary:
+				texture_options.append({
+					"name": String(option.get("name", "")),
+					"path": String(option.get("path", "")),
+				})
+	var groups = parsed.get("action_groups", [])
+	if not groups is Array or groups.is_empty():
+		return false
+	for group in groups:
+		if not group is Dictionary:
+			continue
+		var group_frames: Array = []
+		var saved_frames = group.get("frames", [])
+		if saved_frames is Array:
+			for frame_data in saved_frames:
+				if frame_data is Dictionary:
+					group_frames.append(_deserialize_frame(frame_data))
+		if group_frames.is_empty():
+			group_frames.append(_make_frame("动作 1", _make_default_parts()))
+		action_groups.append({"name": String(group.get("name", "动画组%d" % (action_groups.size() + 1))), "frames": group_frames})
+	if action_groups.is_empty():
+		return false
+	selected_group = clampi(int(parsed.get("selected_group", 0)), 0, action_groups.size() - 1)
+	image_picker_dir = String(parsed.get("image_picker_dir", DEFAULT_TEXTURE_DIR))
+	frames = action_groups[selected_group]["frames"]
+	return true
+
+func _save_project() -> void:
+	if action_groups.is_empty():
+		return
+	if selected_group >= 0 and selected_group < action_groups.size():
+		action_groups[selected_group]["frames"] = _copy_frames(frames)
+	var data := {
+		"version": 1,
+		"selected_group": selected_group,
+		"image_picker_dir": image_picker_dir,
+		"texture_options": texture_options,
+		"action_groups": [],
+	}
+	for group in action_groups:
+		var serialized_frames: Array = []
+		for frame in group.get("frames", []):
+			serialized_frames.append(_serialize_frame(frame))
+		data["action_groups"].append({"name": String(group.get("name", "")), "frames": serialized_frames})
+	var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
+	if file != null:
+		file.store_string(JSON.stringify(data, "\t"))
+
+func _load_texture_options() -> void:
+	texture_options.clear()
+	texture_options.append({"name": "无图片", "path": ""})
+	var raw := FileAccess.get_file_as_string(TEXTURE_MANIFEST_PATH)
+	var parsed = JSON.parse_string(raw)
+	if parsed is Array:
+		for item in parsed:
+			if item is Dictionary and item.has("name") and item.has("file"):
+				texture_options.append({
+					"name": String(item["name"]),
+					"path": "res://%s" % String(item["file"]),
+				})
+	if texture_options.size() > 1:
+		return
+	var fallback_names := [
+		"head_side",
+		"torso_side",
+		"upper_arm_tube",
+		"forearm_tube",
+		"thigh_tube",
+		"shin_tube",
+		"hand_side",
+		"foot_side",
+	]
+	for texture_name in fallback_names:
+		texture_options.append({
+			"name": texture_name,
+			"path": "res://assets/parts/male_tinpet/%s.png" % texture_name,
+		})
 
 func _make_default_parts() -> Array:
 	var default_parts: Array = [
@@ -204,7 +682,7 @@ func _make_default_parts() -> Array:
 	return _with_default_joints(default_parts)
 
 func _part(part_name: String, a: Vector2, b: Vector2, color: Color) -> Dictionary:
-	return {"name": part_name, "a": a, "b": b, "color": color, "joint_a": "", "joint_b": ""}
+	return {"name": part_name, "a": a, "b": b, "color": color, "joint_a": "", "joint_b": "", "binding": {}}
 
 func _with_default_joints(frame_parts: Array) -> Array:
 	var joints := [
@@ -236,24 +714,167 @@ func _copy_parts(source: Array) -> Array:
 		var copied_part := _part(part["name"], part["a"], part["b"], part["color"])
 		copied_part["joint_a"] = part.get("joint_a", "")
 		copied_part["joint_b"] = part.get("joint_b", "")
+		copied_part["binding"] = _copy_binding(part.get("binding", {}))
 		copied.append(copied_part)
 	return copied
+
+func _copy_frames(source: Array) -> Array:
+	var copied: Array = []
+	for frame in source:
+		copied.append(_make_frame(String(frame.get("name", "动作 %d" % (copied.size() + 1))), frame.get("parts", [])))
+	return copied
+
+func _copy_binding(source) -> Dictionary:
+	if not source is Dictionary or source.is_empty():
+		return {}
+	return {
+		"name": String(source.get("name", "")),
+		"path": String(source.get("path", "")),
+		"offset": source.get("offset", Vector2.ZERO),
+		"layer": int(source.get("layer", 0)),
+		"opacity": float(source.get("opacity", 0.45)),
+		"scale": float(source.get("scale", 1.0)),
+		"rotation": float(source.get("rotation", 0.0)),
+		"mirror": bool(source.get("mirror", false)),
+	}
+
+func _serialize_frame(frame: Dictionary) -> Dictionary:
+	var serialized_parts: Array = []
+	for part in frame.get("parts", []):
+		serialized_parts.append(_serialize_part(part))
+	return {"name": String(frame.get("name", "")), "parts": serialized_parts}
+
+func _deserialize_frame(frame_data: Dictionary) -> Dictionary:
+	var frame_parts: Array = []
+	var saved_parts = frame_data.get("parts", [])
+	if saved_parts is Array:
+		for part_data in saved_parts:
+			if part_data is Dictionary:
+				frame_parts.append(_deserialize_part(part_data))
+	return {"name": String(frame_data.get("name", "动作 1")), "parts": _copy_parts(frame_parts)}
+
+func _serialize_part(part: Dictionary) -> Dictionary:
+	return {
+		"name": String(part.get("name", "")),
+		"a": _serialize_vector2(part.get("a", Vector2.ZERO)),
+		"b": _serialize_vector2(part.get("b", Vector2.ZERO)),
+		"color": _serialize_color(part.get("color", Color.WHITE)),
+		"joint_a": String(part.get("joint_a", "")),
+		"joint_b": String(part.get("joint_b", "")),
+		"binding": _serialize_binding(part.get("binding", {})),
+	}
+
+func _deserialize_part(part_data: Dictionary) -> Dictionary:
+	var part := _part(
+		String(part_data.get("name", "")),
+		_deserialize_vector2(part_data.get("a", [0.0, 0.0])),
+		_deserialize_vector2(part_data.get("b", [0.0, 0.0])),
+		_deserialize_color(part_data.get("color", [1.0, 1.0, 1.0, 1.0]))
+	)
+	part["joint_a"] = String(part_data.get("joint_a", ""))
+	part["joint_b"] = String(part_data.get("joint_b", ""))
+	part["binding"] = _deserialize_binding(part_data.get("binding", {}))
+	return part
+
+func _serialize_binding(binding) -> Dictionary:
+	if not binding is Dictionary or binding.is_empty():
+		return {}
+	var copied := _copy_binding(binding)
+	copied["offset"] = _serialize_vector2(copied.get("offset", Vector2.ZERO))
+	return copied
+
+func _deserialize_binding(binding_data) -> Dictionary:
+	if not binding_data is Dictionary or binding_data.is_empty():
+		return {}
+	var copied := _copy_binding(binding_data)
+	copied["offset"] = _deserialize_vector2(binding_data.get("offset", [0.0, 0.0]))
+	return copied
+
+func _serialize_vector2(value) -> Array:
+	var vector: Vector2 = value
+	return [vector.x, vector.y]
+
+func _deserialize_vector2(value) -> Vector2:
+	if value is Array and value.size() >= 2:
+		return Vector2(float(value[0]), float(value[1]))
+	return Vector2.ZERO
+
+func _serialize_color(value) -> Array:
+	var color: Color = value
+	return [color.r, color.g, color.b, color.a]
+
+func _deserialize_color(value) -> Color:
+	if value is Array and value.size() >= 4:
+		return Color(float(value[0]), float(value[1]), float(value[2]), float(value[3]))
+	return Color.WHITE
 
 func _save_current_frame() -> void:
 	if selected_frame < 0 or selected_frame >= frames.size():
 		return
+	if selected_frame > 0:
+		_normalize_parts_to_first_lengths(parts)
 	frames[selected_frame]["parts"] = _copy_parts(parts)
+	if selected_group >= 0 and selected_group < action_groups.size():
+		action_groups[selected_group]["frames"] = _copy_frames(frames)
 
-func _load_frame(index: int) -> void:
+func _load_frame(index: int, save_previous := true) -> void:
+	if save_previous and selected_frame >= 0 and selected_frame < frames.size() and not parts.is_empty():
+		_save_current_frame()
 	selected_frame = clampi(index, 0, frames.size() - 1)
+	if selected_frame > 0:
+		_normalize_frame_to_first_lengths(frames[selected_frame])
 	parts = _copy_parts(frames[selected_frame]["parts"])
 	selected_part = clampi(selected_part, 0, parts.size() - 1)
+	_rebuild_bone_picker()
 	_update_ui()
 	queue_redraw()
 
 func _select_frame(index: int) -> void:
-	_save_current_frame()
 	_load_frame(index)
+
+func _select_action_group(index: int) -> void:
+	if updating_binding_controls:
+		return
+	if index < 0 or index >= action_groups.size():
+		return
+	_save_current_frame()
+	selected_group = index
+	frames = _copy_frames(action_groups[selected_group].get("frames", []))
+	selected_frame = 0
+	selected_part = 0
+	_load_frame(0, false)
+	_rebuild_action_group_pickers()
+	_save_project()
+
+func _add_action_group() -> void:
+	_save_current_frame()
+	var group_name := "动画组%d" % (action_groups.size() + 1)
+	action_groups.append(_make_action_group(group_name))
+	selected_group = action_groups.size() - 1
+	frames = _copy_frames(action_groups[selected_group]["frames"])
+	selected_frame = 0
+	selected_part = 0
+	_load_frame(0, false)
+	_rebuild_action_group_pickers()
+	_save_project()
+
+func _delete_action_group() -> void:
+	if action_groups.size() <= 1:
+		frames = _make_action_group("动画组1")["frames"]
+		action_groups[0]["frames"] = _copy_frames(frames)
+		selected_group = 0
+		_load_frame(0, false)
+		_rebuild_action_group_pickers()
+		_save_project()
+		return
+	action_groups.remove_at(selected_group)
+	selected_group = clampi(selected_group, 0, action_groups.size() - 1)
+	frames = _copy_frames(action_groups[selected_group].get("frames", []))
+	selected_frame = 0
+	selected_part = 0
+	_load_frame(0, false)
+	_rebuild_action_group_pickers()
+	_save_project()
 
 func _select_previous_frame() -> void:
 	_select_frame((selected_frame - 1 + frames.size()) % frames.size())
@@ -266,11 +887,13 @@ func _duplicate_frame() -> void:
 	var insert_at := selected_frame + 1
 	frames.insert(insert_at, _make_frame("动作 %d" % (frames.size() + 1), parts))
 	_load_frame(insert_at)
+	_save_project()
 
 func _add_default_frame() -> void:
 	_save_current_frame()
 	frames.append(_make_frame("动作 %d" % (frames.size() + 1), _make_default_parts()))
 	_load_frame(frames.size() - 1)
+	_save_project()
 
 func _delete_frame() -> void:
 	if frames.size() <= 1:
@@ -278,6 +901,7 @@ func _delete_frame() -> void:
 		return
 	frames.remove_at(selected_frame)
 	_load_frame(mini(selected_frame, frames.size() - 1))
+	_save_project()
 
 func _reset_current_frame() -> void:
 	parts = _make_default_parts()
@@ -285,6 +909,7 @@ func _reset_current_frame() -> void:
 	selected_part = 0
 	_update_ui()
 	queue_redraw()
+	_save_project()
 
 func _toggle_playback() -> void:
 	if is_playing:
@@ -369,12 +994,15 @@ func _drag_to(pos: Vector2) -> void:
 		_move_endpoint_group_by_delta(drag_part, 1, delta)
 		last_mouse = clamped
 	elif drag_endpoint == 0:
-		_move_endpoint_group_to(drag_part, 0, clamped)
+		_move_endpoint_group_to(drag_part, 0, _constrain_endpoint_to_first_length(drag_part, 0, clamped))
 	elif drag_endpoint == 1:
-		_move_endpoint_group_to(drag_part, 1, clamped)
+		_move_endpoint_group_to(drag_part, 1, _constrain_endpoint_to_first_length(drag_part, 1, clamped))
+	if selected_frame > 0:
+		_normalize_parts_to_first_lengths(parts, drag_part)
 	_save_current_frame()
 	_update_ui()
 	queue_redraw()
+	_save_project()
 
 func _draw() -> void:
 	canvas_rect = Rect2(Vector2.ZERO, size)
@@ -395,6 +1023,7 @@ func _draw_grid() -> void:
 		y += step
 
 func _draw_figure() -> void:
+	_draw_bound_textures(-1000000, -1)
 	for i in range(parts.size()):
 		var color: Color = parts[i]["color"]
 		var width := LINE_WIDTH
@@ -404,12 +1033,89 @@ func _draw_figure() -> void:
 		draw_line(parts[i]["a"], parts[i]["b"], color, width, true)
 
 	_draw_head_marker()
+	_draw_bound_textures(0, 1000000)
 
 	if is_playing:
 		return
 	for i in range(parts.size()):
 		_draw_handle(parts[i]["a"], i == selected_part, _is_head_top_endpoint(i, 0))
 		_draw_handle(parts[i]["b"], i == selected_part, _is_head_top_endpoint(i, 1))
+
+func _draw_bound_textures(min_layer: int, max_layer: int) -> void:
+	var entries: Array = []
+	for i in range(parts.size()):
+		var binding: Dictionary = parts[i].get("binding", {})
+		if binding.is_empty():
+			continue
+		var layer := int(binding.get("layer", 0))
+		if layer < min_layer or layer > max_layer:
+			continue
+		entries.append({"part_index": i, "layer": layer})
+	entries.sort_custom(_sort_texture_entries)
+	for entry in entries:
+		_draw_part_texture(entry["part_index"])
+
+func _sort_texture_entries(a: Dictionary, b: Dictionary) -> bool:
+	if int(a["layer"]) == int(b["layer"]):
+		return int(a["part_index"]) < int(b["part_index"])
+	return int(a["layer"]) < int(b["layer"])
+
+func _draw_part_texture(part_index: int) -> void:
+	if part_index < 0 or part_index >= parts.size():
+		return
+	var part: Dictionary = parts[part_index]
+	var binding: Dictionary = part.get("binding", {})
+	var texture := _get_bound_texture(binding)
+	if texture == null:
+		return
+	var a: Vector2 = part["a"]
+	var b: Vector2 = part["b"]
+	var segment := b - a
+	var length := segment.length()
+	if length <= 0.1:
+		return
+	var texture_size := texture.get_size()
+	if texture_size.x <= 0.0 or texture_size.y <= 0.0:
+		return
+
+	var offset: Vector2 = binding.get("offset", Vector2.ZERO)
+	var modulate := Color(1.0, 1.0, 1.0, clampf(float(binding.get("opacity", 0.45)), 0.15, 1.0))
+	var manual_scale := maxf(0.1, float(binding.get("scale", 1.0)))
+	var manual_rotation := deg_to_rad(float(binding.get("rotation", 0.0)))
+	var transform_scale := Vector2(-1.0, 1.0) if bool(binding.get("mirror", false)) else Vector2.ONE
+	var midpoint := (a + b) * 0.5
+	var angle := segment.angle() + manual_rotation
+	if texture_size.x >= texture_size.y:
+		var draw_length := length * manual_scale
+		var height := maxf(8.0, draw_length * texture_size.y / texture_size.x)
+		var rect := Rect2(Vector2(-draw_length * 0.5 + offset.x, -height * 0.5 + offset.y), Vector2(draw_length, height))
+		draw_set_transform(midpoint, angle, transform_scale)
+		draw_texture_rect(texture, rect, false, modulate)
+	else:
+		var draw_length := length * manual_scale
+		var width := maxf(8.0, draw_length * texture_size.x / texture_size.y)
+		var rect := Rect2(Vector2(-width * 0.5 + offset.y, -draw_length * 0.5 + offset.x), Vector2(width, draw_length))
+		draw_set_transform(midpoint, angle - PI * 0.5, transform_scale)
+		draw_texture_rect(texture, rect, false, modulate)
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+func _get_bound_texture(binding: Dictionary) -> Texture2D:
+	var path := String(binding.get("path", ""))
+	return _get_texture_for_path(path)
+
+func _get_texture_for_path(path: String) -> Texture2D:
+	if path == "":
+		return null
+	if not texture_cache.has(path):
+		var texture: Texture2D = null
+		var image_path := path
+		if path.begins_with("res://") or path.begins_with("user://"):
+			image_path = ProjectSettings.globalize_path(path)
+		var image := Image.new()
+		if image.load(image_path) == OK:
+			texture = ImageTexture.create_from_image(image)
+		texture_cache[path] = texture
+	return texture_cache[path]
 
 func _draw_head_marker() -> void:
 	if parts.is_empty():
@@ -439,6 +1145,80 @@ func _move_endpoint_group_by_delta(part_index: int, endpoint: int, delta: Vector
 	var current := _endpoint_position(part_index, endpoint)
 	_move_endpoint_group_to(part_index, endpoint, _clamp_to_canvas(current + delta))
 
+func _constrain_endpoint_to_first_length(part_index: int, endpoint: int, target: Vector2) -> Vector2:
+	if selected_frame <= 0:
+		return target
+	var template_length := _first_frame_part_length(part_index)
+	if template_length <= 0.001:
+		return target
+	var anchor := _endpoint_position(part_index, 1 - endpoint)
+	var direction := target - anchor
+	if direction.length() <= 0.001:
+		direction = _first_frame_part_direction(part_index)
+		if endpoint == 0:
+			direction = -direction
+	else:
+		direction = direction.normalized()
+	return _clamp_to_canvas(anchor + direction * template_length)
+
+func _normalize_frame_to_first_lengths(frame: Dictionary) -> void:
+	var frame_parts: Array = frame.get("parts", [])
+	_normalize_parts_to_first_lengths(frame_parts)
+	frame["parts"] = frame_parts
+
+func _normalize_parts_to_first_lengths(frame_parts: Array, priority_part := -1) -> void:
+	if frame_parts.is_empty() or frames.is_empty():
+		return
+	if priority_part >= 0 and priority_part < frame_parts.size():
+		_normalize_part_to_first_length(frame_parts, priority_part)
+	for i in range(frame_parts.size()):
+		if i == priority_part:
+			continue
+		_normalize_part_to_first_length(frame_parts, i)
+
+func _normalize_part_to_first_length(frame_parts: Array, part_index: int) -> void:
+	if part_index < 0 or part_index >= frame_parts.size():
+		return
+	var template_length := _first_frame_part_length(part_index)
+	if template_length <= 0.001:
+		return
+	var a: Vector2 = frame_parts[part_index]["a"]
+	var b: Vector2 = frame_parts[part_index]["b"]
+	var direction := b - a
+	if direction.length() <= 0.001:
+		direction = _first_frame_part_direction(part_index)
+	else:
+		direction = direction.normalized()
+	var target_b := _clamp_to_canvas(a + direction * template_length)
+	var joint_b := String(frame_parts[part_index].get("joint_b", ""))
+	if joint_b == "":
+		frame_parts[part_index]["b"] = target_b
+		return
+	for i in range(frame_parts.size()):
+		if String(frame_parts[i].get("joint_a", "")) == joint_b:
+			frame_parts[i]["a"] = target_b
+		if String(frame_parts[i].get("joint_b", "")) == joint_b:
+			frame_parts[i]["b"] = target_b
+
+func _first_frame_part_length(part_index: int) -> float:
+	if frames.is_empty():
+		return 0.0
+	var template_parts: Array = frames[0].get("parts", [])
+	if part_index < 0 or part_index >= template_parts.size():
+		return 0.0
+	return template_parts[part_index]["a"].distance_to(template_parts[part_index]["b"])
+
+func _first_frame_part_direction(part_index: int) -> Vector2:
+	if frames.is_empty():
+		return Vector2.RIGHT
+	var template_parts: Array = frames[0].get("parts", [])
+	if part_index < 0 or part_index >= template_parts.size():
+		return Vector2.RIGHT
+	var direction: Vector2 = template_parts[part_index]["b"] - template_parts[part_index]["a"]
+	if direction.length() <= 0.001:
+		return Vector2.RIGHT
+	return direction.normalized()
+
 func _endpoint_joint(part_index: int, endpoint: int) -> String:
 	if part_index < 0 or part_index >= parts.size():
 		return ""
@@ -466,8 +1246,295 @@ func _update_ui() -> void:
 	if selected_label != null and not parts.is_empty():
 		var part: Dictionary = parts[selected_part]
 		var length: float = part["a"].distance_to(part["b"])
-		selected_label.text = "当前部位：%s  长度：%d px" % [part["name"], int(round(length))]
+		var binding: Dictionary = part.get("binding", {})
+		var binding_name := "未绑定" if binding.is_empty() else String(binding.get("name", ""))
+		selected_label.text = "当前部位：%s  长度：%d px\n贴图：%s" % [part["name"], int(round(length)), binding_name]
+	_update_binding_controls()
 	_rebuild_frame_list()
+
+func _update_binding_controls() -> void:
+	if texture_picker == null or parts.is_empty():
+		return
+	updating_binding_controls = true
+	if bone_picker != null and bone_picker.item_count == parts.size():
+		bone_picker.select(selected_part)
+	var part: Dictionary = parts[selected_part]
+	var binding: Dictionary = part.get("binding", {})
+	if not binding.is_empty():
+		var selected_texture := String(binding.get("name", ""))
+		var selected_index := texture_picker.selected
+		for i in range(texture_options.size()):
+			if String(texture_options[i]["name"]) == selected_texture:
+				selected_index = i
+				break
+		if texture_picker.item_count > 0 and selected_index >= 0:
+			texture_picker.select(selected_index)
+	var has_binding := not binding.is_empty()
+	var selected_path := _selected_texture_path()
+	if clear_image_button != null:
+		clear_image_button.disabled = selected_path == ""
+	if offset_along_spin != null:
+		offset_along_spin.editable = has_binding
+		offset_along_spin.value = float(binding.get("offset", Vector2.ZERO).x)
+	if offset_perp_spin != null:
+		offset_perp_spin.editable = has_binding
+		offset_perp_spin.value = float(binding.get("offset", Vector2.ZERO).y)
+	if layer_spin != null:
+		layer_spin.editable = has_binding
+		layer_spin.value = float(binding.get("layer", 0))
+	if opacity_spin != null:
+		opacity_spin.editable = has_binding
+		opacity_spin.value = float(binding.get("opacity", 0.45))
+	if scale_spin != null:
+		scale_spin.editable = has_binding
+		scale_spin.value = float(binding.get("scale", 1.0))
+	if rotation_spin != null:
+		rotation_spin.editable = has_binding
+		rotation_spin.value = float(binding.get("rotation", 0.0))
+	if mirror_check != null:
+		mirror_check.disabled = not has_binding
+		mirror_check.button_pressed = bool(binding.get("mirror", false))
+	updating_binding_controls = false
+
+func _rebuild_bone_picker() -> void:
+	if bone_picker == null:
+		return
+	updating_binding_controls = true
+	bone_picker.clear()
+	for part in parts:
+		bone_picker.add_item(part["name"])
+	if not parts.is_empty():
+		bone_picker.select(clampi(selected_part, 0, parts.size() - 1))
+	updating_binding_controls = false
+
+func _rebuild_action_group_pickers() -> void:
+	updating_binding_controls = true
+	if action_group_picker != null:
+		action_group_picker.clear()
+		for group in action_groups:
+			action_group_picker.add_item(String(group.get("name", "")))
+		if not action_groups.is_empty():
+			action_group_picker.select(clampi(selected_group, 0, action_groups.size() - 1))
+	if source_group_picker != null:
+		source_group_picker.clear()
+		for group in action_groups:
+			source_group_picker.add_item(String(group.get("name", "")))
+		if not action_groups.is_empty():
+			source_group_picker.select(0)
+	updating_binding_controls = false
+
+func _select_binding_texture(_index: int) -> void:
+	if updating_binding_controls:
+		return
+	_select_texture_option(_index)
+
+func _apply_selected_texture_to_current_part() -> void:
+	if texture_picker == null or texture_options.is_empty():
+		return
+	if selected_part < 0 or selected_part >= parts.size():
+		return
+	var index := clampi(texture_picker.selected, 0, texture_options.size() - 1)
+	var option: Dictionary = texture_options[index]
+	if String(option.get("path", "")) == "":
+		_clear_current_part_texture()
+		return
+	var old_binding: Dictionary = parts[selected_part].get("binding", {})
+	parts[selected_part]["binding"] = {
+		"name": option["name"],
+		"path": option["path"],
+		"offset": old_binding.get("offset", Vector2.ZERO),
+		"layer": int(old_binding.get("layer", 0)),
+		"opacity": float(old_binding.get("opacity", 0.45)),
+		"scale": float(old_binding.get("scale", 1.0)),
+		"rotation": float(old_binding.get("rotation", 0.0)),
+		"mirror": bool(old_binding.get("mirror", false)),
+	}
+	_save_current_frame()
+	_update_ui()
+	queue_redraw()
+	_save_project()
+
+func _clear_current_part_texture() -> void:
+	if selected_part < 0 or selected_part >= parts.size():
+		return
+	parts[selected_part]["binding"] = {}
+	_save_current_frame()
+	_update_ui()
+	queue_redraw()
+
+func _clear_selected_texture_option() -> void:
+	if texture_picker == null or texture_options.is_empty():
+		return
+	var index := texture_picker.selected
+	if index <= 0 or index >= texture_options.size():
+		return
+	var path := String(texture_options[index].get("path", ""))
+	texture_options.remove_at(index)
+	texture_picker.remove_item(index)
+	_clear_bindings_for_texture_path(path)
+	texture_picker.select(0)
+	_load_frame(selected_frame, false)
+	if export_label != null:
+		export_label.text = "已清除图片，并移除使用它的骨骼绑定。"
+	_save_project()
+
+func _clear_bindings_for_texture_path(path: String) -> void:
+	if path == "":
+		return
+	for frame in frames:
+		var frame_parts: Array = frame.get("parts", [])
+		for part in frame_parts:
+			var binding: Dictionary = part.get("binding", {})
+			if String(binding.get("path", "")) == path:
+				part["binding"] = {}
+		frame["parts"] = frame_parts
+	for part in parts:
+		var binding: Dictionary = part.get("binding", {})
+		if String(binding.get("path", "")) == path:
+			part["binding"] = {}
+
+func _selected_texture_path() -> String:
+	if texture_picker == null or texture_options.is_empty():
+		return ""
+	var index := texture_picker.selected
+	if index < 0 or index >= texture_options.size():
+		return ""
+	return String(texture_options[index].get("path", ""))
+
+func _map_first_frame_bindings_to_later_frames() -> void:
+	_save_current_frame()
+	if frames.size() <= 1:
+		if export_label != null:
+			export_label.text = "只有一帧，暂无后续帧可映射。"
+		return
+	var template_parts: Array = frames[0].get("parts", [])
+	var mapped_count := 0
+	for frame_index in range(1, frames.size()):
+		var frame_parts: Array = frames[frame_index].get("parts", [])
+		for part_index in range(mini(template_parts.size(), frame_parts.size())):
+			var template_binding: Dictionary = template_parts[part_index].get("binding", {})
+			frame_parts[part_index]["binding"] = _copy_binding(template_binding)
+			if not template_binding.is_empty():
+				mapped_count += 1
+		_normalize_parts_to_first_lengths(frame_parts)
+		frames[frame_index]["parts"] = frame_parts
+	_load_frame(selected_frame, false)
+	if export_label != null:
+		export_label.text = "已将第一帧贴图绑定映射到后续 %d 帧，共 %d 个线条绑定。" % [frames.size() - 1, mapped_count]
+	_save_project()
+
+func _copy_first_frame_mapping_from_source_group() -> void:
+	if source_group_picker == null or action_groups.is_empty():
+		return
+	var source_index := source_group_picker.selected
+	if source_index < 0 or source_index >= action_groups.size():
+		return
+	_save_current_frame()
+	var source_frames: Array = action_groups[source_index].get("frames", [])
+	if source_frames.is_empty() or frames.is_empty():
+		return
+	var source_parts: Array = source_frames[0].get("parts", [])
+	var target_parts: Array = frames[0].get("parts", [])
+	var copied_count := 0
+	for part_index in range(mini(source_parts.size(), target_parts.size())):
+		var source_binding: Dictionary = source_parts[part_index].get("binding", {})
+		target_parts[part_index]["binding"] = _copy_binding(source_binding)
+		if not source_binding.is_empty():
+			copied_count += 1
+	frames[0]["parts"] = target_parts
+	for frame_index in range(1, frames.size()):
+		var frame_parts: Array = frames[frame_index].get("parts", [])
+		for part_index in range(mini(source_parts.size(), frame_parts.size())):
+			frame_parts[part_index]["binding"] = _copy_binding(source_parts[part_index].get("binding", {}))
+		frames[frame_index]["parts"] = frame_parts
+	_load_frame(selected_frame, false)
+	if export_label != null:
+		export_label.text = "已从 %s 的第 1 帧复制 %d 个贴图映射。" % [String(action_groups[source_index].get("name", "")), copied_count]
+	_save_project()
+
+func _set_binding_offset_along(value: float) -> void:
+	_set_binding_offset(Vector2(value, _current_binding_offset().y))
+
+func _set_binding_offset_perp(value: float) -> void:
+	_set_binding_offset(Vector2(_current_binding_offset().x, value))
+
+func _set_binding_offset(offset: Vector2) -> void:
+	if updating_binding_controls or selected_part < 0 or selected_part >= parts.size():
+		return
+	var binding: Dictionary = parts[selected_part].get("binding", {})
+	if binding.is_empty():
+		return
+	binding["offset"] = offset
+	parts[selected_part]["binding"] = binding
+	_save_current_frame()
+	queue_redraw()
+	_save_project()
+
+func _current_binding_offset() -> Vector2:
+	if selected_part < 0 or selected_part >= parts.size():
+		return Vector2.ZERO
+	var binding: Dictionary = parts[selected_part].get("binding", {})
+	return binding.get("offset", Vector2.ZERO)
+
+func _set_binding_layer(value: float) -> void:
+	if updating_binding_controls or selected_part < 0 or selected_part >= parts.size():
+		return
+	var binding: Dictionary = parts[selected_part].get("binding", {})
+	if binding.is_empty():
+		return
+	binding["layer"] = int(round(value))
+	parts[selected_part]["binding"] = binding
+	_save_current_frame()
+	queue_redraw()
+	_save_project()
+
+func _set_binding_opacity(value: float) -> void:
+	if updating_binding_controls or selected_part < 0 or selected_part >= parts.size():
+		return
+	var binding: Dictionary = parts[selected_part].get("binding", {})
+	if binding.is_empty():
+		return
+	binding["opacity"] = clampf(value, 0.15, 1.0)
+	parts[selected_part]["binding"] = binding
+	_save_current_frame()
+	queue_redraw()
+	_save_project()
+
+func _set_binding_scale(value: float) -> void:
+	if updating_binding_controls or selected_part < 0 or selected_part >= parts.size():
+		return
+	var binding: Dictionary = parts[selected_part].get("binding", {})
+	if binding.is_empty():
+		return
+	binding["scale"] = clampf(value, 0.1, 4.0)
+	parts[selected_part]["binding"] = binding
+	_save_current_frame()
+	queue_redraw()
+	_save_project()
+
+func _set_binding_rotation(value: float) -> void:
+	if updating_binding_controls or selected_part < 0 or selected_part >= parts.size():
+		return
+	var binding: Dictionary = parts[selected_part].get("binding", {})
+	if binding.is_empty():
+		return
+	binding["rotation"] = clampf(value, -180.0, 180.0)
+	parts[selected_part]["binding"] = binding
+	_save_current_frame()
+	queue_redraw()
+	_save_project()
+
+func _set_binding_mirror(value: bool) -> void:
+	if updating_binding_controls or selected_part < 0 or selected_part >= parts.size():
+		return
+	var binding: Dictionary = parts[selected_part].get("binding", {})
+	if binding.is_empty():
+		return
+	binding["mirror"] = value
+	parts[selected_part]["binding"] = binding
+	_save_current_frame()
+	queue_redraw()
+	_save_project()
 
 func _rebuild_frame_list() -> void:
 	if frame_list == null:

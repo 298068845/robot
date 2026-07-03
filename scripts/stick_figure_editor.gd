@@ -15,7 +15,41 @@ const SIDEBAR_WIDTH := 500.0
 const EXPORT_SIZE := Vector2i(960, 720)
 const TEXTURE_MANIFEST_PATH := "res://assets/parts/male_tinpet/manifest.json"
 const DEFAULT_TEXTURE_DIR := "res://assets/parts/male_tinpet"
+const SKIN_ROOT := "res://assets/skins"
+const DEFAULT_SKIN_PATH := "res://assets/skins/male_tinpet/skin.json"
 const SAVE_PATH := "user://stick_figure_actions.json"
+const PART_SLOT_IDS := [
+	"head",
+	"torso",
+	"left_upper_arm",
+	"left_forearm",
+	"right_upper_arm",
+	"right_forearm",
+	"left_thigh",
+	"left_shin",
+	"left_foot",
+	"right_thigh",
+	"right_shin",
+	"right_foot",
+	"left_hand",
+	"right_hand",
+]
+const PART_DISPLAY_NAMES := {
+	"head": "头部",
+	"torso": "躯干",
+	"left_upper_arm": "左上臂",
+	"left_forearm": "左前臂",
+	"right_upper_arm": "右上臂",
+	"right_forearm": "右前臂",
+	"left_thigh": "左大腿",
+	"left_shin": "左小腿",
+	"left_foot": "左脚掌",
+	"right_thigh": "右大腿",
+	"right_shin": "右小腿",
+	"right_foot": "右脚掌",
+	"left_hand": "左手掌",
+	"right_hand": "右手掌",
+}
 
 var parts: Array = []
 var frames: Array = []
@@ -23,6 +57,11 @@ var action_groups: Array = []
 var selected_group := 0
 var texture_options: Array = []
 var texture_cache := {}
+var skin_options: Array = []
+var current_skin_path := DEFAULT_SKIN_PATH
+var current_skin := {}
+var lock_first_frame_lengths := false
+var locked_part_lengths: Array = []
 var selected_part := 0
 var selected_frame := 0
 var drag_part := -1
@@ -43,6 +82,8 @@ var playback_timer: Timer
 var speed_slider: HSlider
 var action_group_picker: OptionButton
 var source_group_picker: OptionButton
+var skin_picker: OptionButton
+var length_lock_button: Button
 var bone_picker: OptionButton
 var texture_picker: OptionButton
 var add_image_button: Button
@@ -65,6 +106,8 @@ var mirror_check: CheckBox
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	_load_texture_options()
+	_load_skin_options()
+	_load_skin(current_skin_path)
 	_load_project_or_default()
 	_center_project_in_demo_area()
 	_load_frame(0)
@@ -227,11 +270,45 @@ func _build_ui() -> void:
 	export_button.pressed.connect(_export_png)
 	frame_action_grid.add_child(export_button)
 
+	length_lock_button = Button.new()
+	length_lock_button.toggle_mode = true
+	length_lock_button.text = "锁定长度"
+	length_lock_button.custom_minimum_size = Vector2(0, 26)
+	length_lock_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	length_lock_button.toggled.connect(_toggle_length_lock)
+	frame_action_grid.add_child(length_lock_button)
+
 	var binding_title := Label.new()
 	binding_title.text = "线条贴图绑定"
 	binding_title.add_theme_color_override("font_color", Color.WHITE)
 	binding_title.add_theme_font_size_override("font_size", 16)
 	root.add_child(binding_title)
+
+	var skin_grid := GridContainer.new()
+	skin_grid.columns = 3
+	skin_grid.add_theme_constant_override("h_separation", 6)
+	skin_grid.add_theme_constant_override("v_separation", 4)
+	root.add_child(skin_grid)
+
+	skin_picker = OptionButton.new()
+	skin_picker.custom_minimum_size = Vector2(0, 30)
+	skin_picker.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	skin_picker.item_selected.connect(_select_skin)
+	skin_grid.add_child(skin_picker)
+
+	var apply_skin_button := Button.new()
+	apply_skin_button.text = "应用整套"
+	apply_skin_button.custom_minimum_size = Vector2(0, 26)
+	apply_skin_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	apply_skin_button.pressed.connect(_apply_current_skin_to_all_frames)
+	skin_grid.add_child(apply_skin_button)
+
+	var apply_part_button := Button.new()
+	apply_part_button.text = "应用部件"
+	apply_part_button.custom_minimum_size = Vector2(0, 26)
+	apply_part_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	apply_part_button.pressed.connect(_apply_current_skin_to_selected_part)
+	skin_grid.add_child(apply_part_button)
 
 	texture_picker = OptionButton.new()
 	texture_picker.custom_minimum_size = Vector2(0, 32)
@@ -261,7 +338,7 @@ func _build_ui() -> void:
 	image_action_grid.add_child(clear_image_button)
 
 	map_from_first_button = Button.new()
-	map_from_first_button.text = "映射到后续"
+	map_from_first_button.text = "映射后续"
 	map_from_first_button.custom_minimum_size = Vector2(0, 26)
 	map_from_first_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	map_from_first_button.pressed.connect(_map_first_frame_bindings_to_later_frames)
@@ -273,7 +350,7 @@ func _build_ui() -> void:
 	image_action_grid.add_child(source_group_picker)
 
 	var copy_source_button := Button.new()
-	copy_source_button.text = "复制组映射"
+	copy_source_button.text = "复制映射"
 	copy_source_button.custom_minimum_size = Vector2(0, 26)
 	copy_source_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	copy_source_button.pressed.connect(_copy_first_frame_mapping_from_source_group)
@@ -346,6 +423,7 @@ func _build_ui() -> void:
 	_build_image_picker_popup()
 
 	_layout_sidebar()
+	_rebuild_skin_picker()
 	_rebuild_action_group_pickers()
 	_update_ui()
 
@@ -548,14 +626,14 @@ func _add_custom_texture_option(path: String) -> void:
 		if String(texture_options[i].get("path", "")) == path:
 			_select_texture_option(i)
 			if export_label != null:
-				export_label.text = "已将图片应用到当前骨骼。"
+				export_label.text = "Applied existing image to current bone."
 			return
 	texture_options.append({"name": display_name, "path": path})
 	if texture_picker != null:
 		texture_picker.add_item(display_name)
 	_select_texture_option(texture_options.size() - 1)
 	if export_label != null:
-		export_label.text = "已添加图片：%s，并应用到当前骨骼。" % display_name
+		export_label.text = "Added %s and applied it to the current bone." % display_name
 
 func _select_texture_option(index: int) -> void:
 	if texture_picker == null or index < 0 or index >= texture_options.size():
@@ -606,12 +684,18 @@ func _load_project() -> bool:
 					group_frames.append(_deserialize_frame(frame_data))
 		if group_frames.is_empty():
 			group_frames.append(_make_frame("动作 1", _make_default_parts()))
-		action_groups.append({"name": String(group.get("name", "动画组%d" % (action_groups.size() + 1))), "frames": group_frames})
+		action_groups.append({"name": String(group.get("name", "Action Group %d" % (action_groups.size() + 1))), "frames": group_frames})
 	if action_groups.is_empty():
 		return false
 	selected_group = clampi(int(parsed.get("selected_group", 0)), 0, action_groups.size() - 1)
+	current_skin_path = String(parsed.get("current_skin_path", current_skin_path))
+	_load_skin(current_skin_path)
+	lock_first_frame_lengths = bool(parsed.get("lock_first_frame_lengths", false))
+	locked_part_lengths = _deserialize_float_array(parsed.get("locked_part_lengths", []))
 	image_picker_dir = String(parsed.get("image_picker_dir", DEFAULT_TEXTURE_DIR))
 	frames = action_groups[selected_group]["frames"]
+	if lock_first_frame_lengths and locked_part_lengths.is_empty():
+		_capture_locked_lengths_from_first_frame()
 	return true
 
 func _save_project() -> void:
@@ -620,8 +704,11 @@ func _save_project() -> void:
 	if selected_group >= 0 and selected_group < action_groups.size():
 		action_groups[selected_group]["frames"] = _copy_frames(frames)
 	var data := {
-		"version": 1,
+		"version": 2,
 		"selected_group": selected_group,
+		"current_skin_path": current_skin_path,
+		"lock_first_frame_lengths": lock_first_frame_lengths,
+		"locked_part_lengths": locked_part_lengths,
 		"image_picker_dir": image_picker_dir,
 		"texture_options": texture_options,
 		"action_groups": [],
@@ -637,7 +724,7 @@ func _save_project() -> void:
 
 func _load_texture_options() -> void:
 	texture_options.clear()
-	texture_options.append({"name": "无图片", "path": ""})
+	texture_options.append({"name": "No Image", "path": ""})
 	var raw := FileAccess.get_file_as_string(TEXTURE_MANIFEST_PATH)
 	var parsed = JSON.parse_string(raw)
 	if parsed is Array:
@@ -665,20 +752,219 @@ func _load_texture_options() -> void:
 			"path": "res://assets/parts/male_tinpet/%s.png" % texture_name,
 		})
 
+func _load_skin_options() -> void:
+	skin_options.clear()
+	var dir := DirAccess.open(SKIN_ROOT)
+	if dir != null:
+		dir.list_dir_begin()
+		var entry := dir.get_next()
+		while entry != "":
+			if dir.current_is_dir() and not entry.begins_with("."):
+				var skin_path := "%s/%s/skin.json" % [SKIN_ROOT, entry]
+				if FileAccess.file_exists(skin_path):
+					var skin_name := entry
+					var raw := FileAccess.get_file_as_string(skin_path)
+					var parsed = JSON.parse_string(raw)
+					if parsed is Dictionary:
+						skin_name = String(parsed.get("display_name", parsed.get("name", entry)))
+					skin_options.append({"name": skin_name, "path": skin_path})
+			entry = dir.get_next()
+		dir.list_dir_end()
+	if skin_options.is_empty():
+		skin_options.append({"name": "Male Tinpet", "path": DEFAULT_SKIN_PATH})
+
+func _load_skin(path: String) -> bool:
+	if path == "":
+		path = DEFAULT_SKIN_PATH
+	if not FileAccess.file_exists(path):
+		return false
+	var parsed = JSON.parse_string(FileAccess.get_file_as_string(path))
+	if not parsed is Dictionary:
+		return false
+	current_skin_path = path
+	current_skin = parsed
+	return true
+
+func _rebuild_skin_picker() -> void:
+	if skin_picker == null:
+		return
+	updating_binding_controls = true
+	skin_picker.clear()
+	var selected_index := 0
+	for i in range(skin_options.size()):
+		var option: Dictionary = skin_options[i]
+		skin_picker.add_item(String(option.get("name", "")))
+		if String(option.get("path", "")) == current_skin_path:
+			selected_index = i
+	if skin_picker.item_count > 0:
+		skin_picker.select(selected_index)
+	updating_binding_controls = false
+
+func _select_skin(index: int) -> void:
+	if updating_binding_controls:
+		return
+	if index < 0 or index >= skin_options.size():
+		return
+	var path := String(skin_options[index].get("path", ""))
+	if _load_skin(path):
+		if export_label != null:
+			export_label.text = "Skin selected: %s" % String(skin_options[index].get("name", ""))
+		_save_project()
+
+func _apply_current_skin_to_all_frames() -> void:
+	if current_skin.is_empty():
+		_load_skin(current_skin_path)
+	_save_current_frame()
+	var applied_count := 0
+	for frame in frames:
+		var frame_parts: Array = frame.get("parts", [])
+		_ensure_required_parts(frame_parts)
+		for part_index in range(frame_parts.size()):
+			var binding := _binding_from_skin_for_part(frame_parts[part_index], part_index)
+			frame_parts[part_index]["binding"] = binding
+			if not binding.is_empty():
+				applied_count += 1
+		frame["parts"] = frame_parts
+	_load_frame(selected_frame, false)
+	if export_label != null:
+		export_label.text = "Applied skin to %d part bindings across %d frames." % [applied_count, frames.size()]
+	_save_project()
+
+func _apply_current_skin_to_selected_part() -> void:
+	if current_skin.is_empty():
+		_load_skin(current_skin_path)
+	if selected_part < 0 or selected_part >= parts.size():
+		return
+	_save_current_frame()
+	var current_part: Dictionary = parts[selected_part]
+	var slot_id := _part_slot_id(current_part, selected_part)
+	var applied_count := 0
+	for frame in frames:
+		var frame_parts: Array = frame.get("parts", [])
+		_ensure_required_parts(frame_parts)
+		var target_index := _find_part_index_by_slot_id(frame_parts, slot_id, selected_part)
+		if target_index < 0:
+			continue
+		var binding := _binding_from_skin_for_part(frame_parts[target_index], target_index)
+		if binding.is_empty():
+			continue
+		frame_parts[target_index]["binding"] = binding
+		applied_count += 1
+		frame["parts"] = frame_parts
+	_load_frame(selected_frame, false)
+	if export_label != null:
+		if applied_count > 0:
+			export_label.text = "Applied %s from current skin to %d frames." % [slot_id, applied_count]
+		else:
+			export_label.text = "Current skin has no usable slot for %s." % slot_id
+	_save_project()
+
+func _find_part_index_by_slot_id(frame_parts: Array, slot_id: String, fallback_index: int) -> int:
+	for i in range(frame_parts.size()):
+		if frame_parts[i] is Dictionary and _part_slot_id(frame_parts[i], i) == slot_id:
+			return i
+	if fallback_index >= 0 and fallback_index < frame_parts.size():
+		return fallback_index
+	return -1
+
+func _binding_from_skin_for_part(part: Dictionary, part_index: int) -> Dictionary:
+	if current_skin.is_empty():
+		return {}
+	var slots: Dictionary = current_skin.get("slots", {})
+	var slot_id := _part_slot_id(part, part_index)
+	if not slots.has(slot_id):
+		return {}
+	var slot: Dictionary = slots[slot_id]
+	var texture_path := _skin_texture_path(slot)
+	if texture_path == "":
+		return {}
+	return {
+		"name": String(slot.get("name", texture_path.get_file().get_basename())),
+		"path": texture_path,
+		"offset": _deserialize_vector2(slot.get("offset", [0.0, 0.0])),
+		"layer": int(slot.get("layer", 0)),
+		"opacity": float(slot.get("opacity", 0.65)),
+		"scale": float(slot.get("scale", 1.0)),
+		"rotation": float(slot.get("rotation", 0.0)),
+		"mirror": bool(slot.get("mirror", false)),
+	}
+
+func _skin_texture_path(slot: Dictionary) -> String:
+	var texture := String(slot.get("texture", ""))
+	if texture == "":
+		return ""
+	if texture.begins_with("res://") or texture.begins_with("user://") or texture.is_absolute_path():
+		return texture
+	var base_dir := String(current_skin.get("base_dir", current_skin_path.get_base_dir()))
+	return "%s/%s" % [base_dir.trim_suffix("/"), texture]
+
+func _ensure_part_ids(frame_parts: Array) -> void:
+	for i in range(frame_parts.size()):
+		if not frame_parts[i] is Dictionary:
+			continue
+		if String(frame_parts[i].get("id", "")) == "":
+			frame_parts[i]["id"] = _part_slot_id(frame_parts[i], i)
+
+func _ensure_required_parts(frame_parts: Array) -> void:
+	_ensure_part_ids(frame_parts)
+	_apply_standard_part_names(frame_parts)
+	_append_missing_hand_part(frame_parts, "left_hand", "left_forearm", "左手掌", Color(0.08, 0.60, 0.56))
+	_append_missing_hand_part(frame_parts, "right_hand", "right_forearm", "右手掌", Color(0.76, 0.32, 0.82))
+	_ensure_part_ids(frame_parts)
+	_apply_standard_part_names(frame_parts)
+
+func _apply_standard_part_names(frame_parts: Array) -> void:
+	for i in range(frame_parts.size()):
+		if not frame_parts[i] is Dictionary:
+			continue
+		var slot_id := _part_slot_id(frame_parts[i], i)
+		if PART_DISPLAY_NAMES.has(slot_id):
+			frame_parts[i]["name"] = String(PART_DISPLAY_NAMES[slot_id])
+
+func _append_missing_hand_part(frame_parts: Array, hand_slot: String, forearm_slot: String, part_name: String, color: Color) -> void:
+	if _find_part_index_by_slot_id(frame_parts, hand_slot, -1) >= 0:
+		return
+	var forearm_index := _find_part_index_by_slot_id(frame_parts, forearm_slot, -1)
+	if forearm_index < 0:
+		return
+	var forearm: Dictionary = frame_parts[forearm_index]
+	var wrist: Vector2 = forearm.get("b", Vector2.ZERO)
+	var direction: Vector2 = Vector2(forearm.get("b", Vector2.ZERO)) - Vector2(forearm.get("a", Vector2.ZERO))
+	if direction.length() <= 0.001:
+		direction = Vector2.LEFT if hand_slot == "left_hand" else Vector2.RIGHT
+	else:
+		direction = direction.normalized()
+	var length := 44.0
+	var hand := _part(part_name, wrist, wrist + direction * length, color)
+	hand["id"] = hand_slot
+	hand["joint_a"] = "left_wrist" if hand_slot == "left_hand" else "right_wrist"
+	hand["joint_b"] = hand_slot
+	frame_parts.append(hand)
+
+func _part_slot_id(part: Dictionary, part_index: int) -> String:
+	var saved_id := String(part.get("id", ""))
+	if saved_id != "":
+		return saved_id
+	if part_index >= 0 and part_index < PART_SLOT_IDS.size():
+		return String(PART_SLOT_IDS[part_index])
+	return String(part.get("name", "part_%d" % part_index))
+
 func _make_default_parts() -> Array:
 	var default_parts: Array = [
 		_part("头部", Vector2(610, 100), Vector2(610, 158), Color(0.94, 0.25, 0.22)),
-		_part("身躯", Vector2(610, 158), Vector2(610, 322), Color(0.12, 0.45, 0.90)),
-		_part("左手大臂", Vector2(610, 158), Vector2(530, 230), Color(0.10, 0.68, 0.38)),
-		_part("左手小臂", Vector2(530, 230), Vector2(474, 300), Color(0.13, 0.78, 0.66)),
-		_part("右手大臂", Vector2(610, 158), Vector2(696, 214), Color(0.62, 0.35, 0.95)),
-		_part("右手小臂", Vector2(696, 214), Vector2(754, 282), Color(0.82, 0.40, 0.88)),
-		_part("左腿大腿", Vector2(610, 322), Vector2(550, 430), Color(0.97, 0.58, 0.12)),
-		_part("左腿小腿", Vector2(550, 430), Vector2(520, 555), Color(0.96, 0.74, 0.12)),
-		_part("左腿脚掌", Vector2(520, 555), Vector2(455, 575), Color(0.59, 0.43, 0.22)),
-		_part("右腿大腿", Vector2(610, 322), Vector2(680, 424), Color(0.90, 0.18, 0.45)),
-		_part("右腿小腿", Vector2(680, 424), Vector2(726, 540), Color(0.55, 0.22, 0.78)),
-		_part("右腿脚掌", Vector2(726, 540), Vector2(796, 548), Color(0.28, 0.34, 0.42)),
+		_part("躯干", Vector2(610, 158), Vector2(610, 322), Color(0.12, 0.45, 0.90)),
+		_part("左上臂", Vector2(610, 158), Vector2(530, 230), Color(0.10, 0.68, 0.38)),
+		_part("左前臂", Vector2(530, 230), Vector2(474, 300), Color(0.13, 0.78, 0.66)),
+		_part("右上臂", Vector2(610, 158), Vector2(696, 214), Color(0.62, 0.35, 0.95)),
+		_part("右前臂", Vector2(696, 214), Vector2(754, 282), Color(0.82, 0.40, 0.88)),
+		_part("左大腿", Vector2(610, 322), Vector2(550, 430), Color(0.97, 0.58, 0.12)),
+		_part("左小腿", Vector2(550, 430), Vector2(520, 555), Color(0.96, 0.74, 0.12)),
+		_part("左脚掌", Vector2(520, 555), Vector2(455, 575), Color(0.59, 0.43, 0.22)),
+		_part("右大腿", Vector2(610, 322), Vector2(680, 424), Color(0.90, 0.18, 0.45)),
+		_part("右小腿", Vector2(680, 424), Vector2(726, 540), Color(0.55, 0.22, 0.78)),
+		_part("右脚掌", Vector2(726, 540), Vector2(796, 548), Color(0.28, 0.34, 0.42)),
+		_part("左手掌", Vector2(474, 300), Vector2(438, 326), Color(0.08, 0.60, 0.56)),
+		_part("右手掌", Vector2(754, 282), Vector2(792, 302), Color(0.76, 0.32, 0.82)),
 	]
 	return _with_default_joints(default_parts)
 
@@ -690,22 +976,26 @@ func _with_default_joints(frame_parts: Array) -> Array:
 		["head_top", "neck"],
 		["neck", "pelvis"],
 		["neck", "left_elbow"],
-		["left_elbow", "left_hand"],
+		["left_elbow", "left_wrist"],
 		["neck", "right_elbow"],
-		["right_elbow", "right_hand"],
+		["right_elbow", "right_wrist"],
 		["pelvis", "left_knee"],
 		["left_knee", "left_ankle"],
 		["left_ankle", "left_toe"],
 		["pelvis", "right_knee"],
 		["right_knee", "right_ankle"],
 		["right_ankle", "right_toe"],
+		["left_wrist", "left_hand"],
+		["right_wrist", "right_hand"],
 	]
 	for i in range(mini(frame_parts.size(), joints.size())):
+		frame_parts[i]["id"] = String(PART_SLOT_IDS[i])
 		frame_parts[i]["joint_a"] = joints[i][0]
 		frame_parts[i]["joint_b"] = joints[i][1]
 	return frame_parts
 
 func _make_frame(frame_name: String, frame_parts: Array) -> Dictionary:
+	_ensure_required_parts(frame_parts)
 	return {"name": frame_name, "parts": _copy_parts(frame_parts)}
 
 func _center_project_in_demo_area() -> void:
@@ -752,9 +1042,11 @@ func _translate_parts(frame_parts: Array, delta: Vector2) -> void:
 
 func _copy_parts(source: Array) -> Array:
 	var copied: Array = []
-	for source_part in source:
+	for i in range(source.size()):
+		var source_part = source[i]
 		var part: Dictionary = source_part
 		var copied_part := _part(part["name"], part["a"], part["b"], part["color"])
+		copied_part["id"] = _part_slot_id(part, i)
 		copied_part["joint_a"] = part.get("joint_a", "")
 		copied_part["joint_b"] = part.get("joint_b", "")
 		copied_part["binding"] = _copy_binding(part.get("binding", {}))
@@ -794,10 +1086,12 @@ func _deserialize_frame(frame_data: Dictionary) -> Dictionary:
 		for part_data in saved_parts:
 			if part_data is Dictionary:
 				frame_parts.append(_deserialize_part(part_data))
+	_ensure_required_parts(frame_parts)
 	return {"name": String(frame_data.get("name", "动作 1")), "parts": _copy_parts(frame_parts)}
 
 func _serialize_part(part: Dictionary) -> Dictionary:
 	return {
+		"id": _part_slot_id(part, -1),
 		"name": String(part.get("name", "")),
 		"a": _serialize_vector2(part.get("a", Vector2.ZERO)),
 		"b": _serialize_vector2(part.get("b", Vector2.ZERO)),
@@ -814,6 +1108,7 @@ func _deserialize_part(part_data: Dictionary) -> Dictionary:
 		_deserialize_vector2(part_data.get("b", [0.0, 0.0])),
 		_deserialize_color(part_data.get("color", [1.0, 1.0, 1.0, 1.0]))
 	)
+	part["id"] = String(part_data.get("id", ""))
 	part["joint_a"] = String(part_data.get("joint_a", ""))
 	part["joint_b"] = String(part_data.get("joint_b", ""))
 	part["binding"] = _deserialize_binding(part_data.get("binding", {}))
@@ -842,6 +1137,13 @@ func _deserialize_vector2(value) -> Vector2:
 		return Vector2(float(value[0]), float(value[1]))
 	return Vector2.ZERO
 
+func _deserialize_float_array(value) -> Array:
+	var result: Array = []
+	if value is Array:
+		for item in value:
+			result.append(float(item))
+	return result
+
 func _serialize_color(value) -> Array:
 	var color: Color = value
 	return [color.r, color.g, color.b, color.a]
@@ -854,7 +1156,8 @@ func _deserialize_color(value) -> Color:
 func _save_current_frame() -> void:
 	if selected_frame < 0 or selected_frame >= frames.size():
 		return
-	if selected_frame > 0:
+	_ensure_required_parts(parts)
+	if selected_frame > 0 or lock_first_frame_lengths:
 		_normalize_parts_to_first_lengths(parts)
 	frames[selected_frame]["parts"] = _copy_parts(parts)
 	if selected_group >= 0 and selected_group < action_groups.size():
@@ -867,6 +1170,7 @@ func _load_frame(index: int, save_previous := true) -> void:
 	if selected_frame > 0:
 		_normalize_frame_to_first_lengths(frames[selected_frame])
 	parts = _copy_parts(frames[selected_frame]["parts"])
+	_ensure_required_parts(parts)
 	selected_part = clampi(selected_part, 0, parts.size() - 1)
 	_rebuild_bone_picker()
 	_update_ui()
@@ -886,6 +1190,8 @@ func _select_action_group(index: int) -> void:
 	selected_frame = 0
 	selected_part = 0
 	_load_frame(0, false)
+	if lock_first_frame_lengths:
+		_capture_locked_lengths_from_first_frame()
 	_rebuild_action_group_pickers()
 	_save_project()
 
@@ -898,6 +1204,8 @@ func _add_action_group() -> void:
 	selected_frame = 0
 	selected_part = 0
 	_load_frame(0, false)
+	if lock_first_frame_lengths:
+		_capture_locked_lengths_from_first_frame()
 	_rebuild_action_group_pickers()
 	_save_project()
 
@@ -916,6 +1224,8 @@ func _delete_action_group() -> void:
 	selected_frame = 0
 	selected_part = 0
 	_load_frame(0, false)
+	if lock_first_frame_lengths:
+		_capture_locked_lengths_from_first_frame()
 	_rebuild_action_group_pickers()
 	_save_project()
 
@@ -981,6 +1291,40 @@ func _set_playback_speed(value: float) -> void:
 	if is_playing:
 		playback_timer.start()
 
+func _toggle_length_lock(enabled: bool) -> void:
+	if updating_binding_controls:
+		return
+	_save_current_frame()
+	lock_first_frame_lengths = enabled
+	if lock_first_frame_lengths:
+		_capture_locked_lengths_from_first_frame()
+		_normalize_parts_to_first_lengths(parts, selected_part)
+		_save_current_frame()
+		if export_label != null:
+			export_label.text = "Initial-frame bone lengths locked. Dragging endpoints now changes direction only."
+	else:
+		if export_label != null:
+			export_label.text = "Initial-frame bone lengths unlocked."
+	_update_ui()
+	queue_redraw()
+	_save_project()
+
+func _capture_locked_lengths_from_first_frame() -> void:
+	locked_part_lengths.clear()
+	if frames.is_empty():
+		return
+	var template_parts: Array = frames[0].get("parts", [])
+	for part in template_parts:
+		if part is Dictionary:
+			locked_part_lengths.append(Vector2(part.get("a", Vector2.ZERO)).distance_to(Vector2(part.get("b", Vector2.ZERO))))
+
+func _locked_length_for_part(part_index: int) -> float:
+	if not lock_first_frame_lengths:
+		return 0.0
+	if part_index < 0 or part_index >= locked_part_lengths.size():
+		return 0.0
+	return float(locked_part_lengths[part_index])
+
 func _gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 		if event.pressed:
@@ -1040,7 +1384,7 @@ func _drag_to(pos: Vector2) -> void:
 		_move_endpoint_group_to(drag_part, 0, _constrain_endpoint_to_first_length(drag_part, 0, clamped))
 	elif drag_endpoint == 1:
 		_move_endpoint_group_to(drag_part, 1, _constrain_endpoint_to_first_length(drag_part, 1, clamped))
-	if selected_frame > 0:
+	if selected_frame > 0 or lock_first_frame_lengths:
 		_normalize_parts_to_first_lengths(parts, drag_part)
 	_save_current_frame()
 	_update_ui()
@@ -1189,7 +1533,7 @@ func _move_endpoint_group_by_delta(part_index: int, endpoint: int, delta: Vector
 	_move_endpoint_group_to(part_index, endpoint, _clamp_to_canvas(current + delta))
 
 func _constrain_endpoint_to_first_length(part_index: int, endpoint: int, target: Vector2) -> Vector2:
-	if selected_frame <= 0:
+	if selected_frame <= 0 and not lock_first_frame_lengths:
 		return target
 	var template_length := _first_frame_part_length(part_index)
 	if template_length <= 0.001:
@@ -1244,6 +1588,9 @@ func _normalize_part_to_first_length(frame_parts: Array, part_index: int) -> voi
 			frame_parts[i]["b"] = target_b
 
 func _first_frame_part_length(part_index: int) -> float:
+	var locked_length := _locked_length_for_part(part_index)
+	if locked_length > 0.001:
+		return locked_length
 	if frames.is_empty():
 		return 0.0
 	var template_parts: Array = frames[0].get("parts", [])
@@ -1285,13 +1632,18 @@ func _is_head_top_endpoint(part_index: int, endpoint: int) -> bool:
 
 func _update_ui() -> void:
 	if frame_label != null:
-		frame_label.text = "当前动作：%d / %d" % [selected_frame + 1, frames.size()]
+		frame_label.text = "Frame %d / %d" % [selected_frame + 1, frames.size()]
+	if length_lock_button != null:
+		updating_binding_controls = true
+		length_lock_button.button_pressed = lock_first_frame_lengths
+		length_lock_button.text = "长度已锁定" if lock_first_frame_lengths else "锁定长度"
+		updating_binding_controls = false
 	if selected_label != null and not parts.is_empty():
 		var part: Dictionary = parts[selected_part]
 		var length: float = part["a"].distance_to(part["b"])
 		var binding: Dictionary = part.get("binding", {})
-		var binding_name := "未绑定" if binding.is_empty() else String(binding.get("name", ""))
-		selected_label.text = "当前部位：%s  长度：%d px\n贴图：%s" % [part["name"], int(round(length)), binding_name]
+		var binding_name := "Unbound" if binding.is_empty() else String(binding.get("name", ""))
+		selected_label.text = "Current part: %s  Length: %d px\nTexture: %s" % [part["name"], int(round(length)), binding_name]
 	_update_binding_controls()
 	_rebuild_frame_list()
 
@@ -1418,7 +1770,7 @@ func _clear_selected_texture_option() -> void:
 	texture_picker.select(0)
 	_load_frame(selected_frame, false)
 	if export_label != null:
-		export_label.text = "已清除图片，并移除使用它的骨骼绑定。"
+		export_label.text = "Removed image and cleared bindings that used it."
 	_save_project()
 
 func _clear_bindings_for_texture_path(path: String) -> void:
@@ -1448,7 +1800,7 @@ func _map_first_frame_bindings_to_later_frames() -> void:
 	_save_current_frame()
 	if frames.size() <= 1:
 		if export_label != null:
-			export_label.text = "只有一帧，暂无后续帧可映射。"
+			export_label.text = "Only one frame exists; there are no later frames to map."
 		return
 	var template_parts: Array = frames[0].get("parts", [])
 	var mapped_count := 0
@@ -1463,7 +1815,7 @@ func _map_first_frame_bindings_to_later_frames() -> void:
 		frames[frame_index]["parts"] = frame_parts
 	_load_frame(selected_frame, false)
 	if export_label != null:
-		export_label.text = "已将第一帧贴图绑定映射到后续 %d 帧，共 %d 个线条绑定。" % [frames.size() - 1, mapped_count]
+		export_label.text = "Mapped first-frame texture bindings to %d later frames (%d bindings)." % [frames.size() - 1, mapped_count]
 	_save_project()
 
 func _copy_first_frame_mapping_from_source_group() -> void:
@@ -1492,7 +1844,7 @@ func _copy_first_frame_mapping_from_source_group() -> void:
 		frames[frame_index]["parts"] = frame_parts
 	_load_frame(selected_frame, false)
 	if export_label != null:
-		export_label.text = "已从 %s 的第 1 帧复制 %d 个贴图映射。" % [String(action_groups[source_index].get("name", "")), copied_count]
+		export_label.text = "Copied %d texture bindings from %s." % [copied_count, String(action_groups[source_index].get("name", ""))]
 	_save_project()
 
 func _set_binding_offset_along(value: float) -> void:
@@ -1665,3 +2017,4 @@ func _clamp_to_canvas(pos: Vector2) -> Vector2:
 		clamp(pos.x, SIDEBAR_WIDTH + 24.0, max(SIDEBAR_WIDTH + 24.0, size.x - 24.0)),
 		clamp(pos.y, 24.0, max(24.0, size.y - 24.0))
 	)
+

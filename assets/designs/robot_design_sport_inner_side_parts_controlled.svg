@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1536" viewBox="0 0 1024 1536">
+﻿<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1536" viewBox="0 0 1024 1536">
   <rect width="1024" height="1536" fill="#ffffff"/>
   <defs>
     <style>
@@ -13,7 +13,7 @@
     </style>
   </defs>
 
-  <!-- Right upper arm inner side: flat side elevation, white main armor, blue only as shoulder rim -->
+  <!-- Inner upper arm inner side: flat side elevation, white main armor, blue only as shoulder rim -->
   <g transform="translate(190 96)">
     <path class="blue line" d="M46,9 C61,-14 104,-17 126,8 L118,27 C97,12 71,13 53,31 Z"/>
     <path class="white line" d="M38,42 L116,42 C130,42 138,54 136,68 L123,214 C122,231 110,242 94,242 L56,242 C40,242 28,231 27,214 L18,68 C17,54 25,42 38,42 Z"/>
@@ -23,7 +23,7 @@
     <circle class="dark line" cx="74" cy="290" r="32"/>
   </g>
 
-  <!-- Right forearm inner side: flat side elevation, no broad blue outer plate -->
+  <!-- Inner forearm inner side: flat side elevation, no broad blue outer plate -->
   <g transform="translate(190 420)">
     <path class="white line" d="M39,48 L125,48 C136,48 143,58 141,70 L126,253 C125,268 115,278 100,278 L61,278 C46,278 36,268 35,253 L22,70 C20,58 28,48 39,48 Z"/>
     <path class="white2" d="M108,57 C127,62 128,76 126,96 L115,249 C114,261 107,269 95,272 L103,272 C114,272 123,263 124,252 L140,70 C142,58 135,48 125,48 Z"/>
@@ -59,7 +59,7 @@
     <line class="line" x1="215" y1="77" x2="215" y2="220"/>
   </g>
 
-  <!-- Right thigh inner side: strict flat side slab, white with only narrow blue edge -->
+  <!-- Inner thigh inner side: strict flat side slab, white with only narrow blue edge -->
   <g transform="translate(660 92)">
     <path class="white line" d="M30,48 L111,48 C126,48 136,60 137,76 L150,281 C151,298 140,312 123,312 L50,312 C33,312 22,298 23,281 L35,76 C36,60 15,48 30,48 Z"/>
     <path class="white2" d="M105,58 C128,63 132,80 133,101 L144,277 C145,291 137,301 124,305 L111,305 C121,298 124,287 123,272 L112,96 C111,78 109,66 105,58 Z"/>
@@ -68,7 +68,7 @@
     <circle class="dark line" cx="84" cy="363" r="35"/>
   </g>
 
-  <!-- Right shin inner side: strict flat side slab, no wide blue outer shin plate -->
+  <!-- Inner shin inner side: strict flat side slab, no wide blue outer shin plate -->
   <g transform="translate(660 516)">
     <path class="white line" d="M37,52 L128,52 C143,52 153,65 152,80 L137,360 C136,377 124,389 107,389 L55,389 C38,389 26,377 25,360 L15,80 C14,65 22,52 37,52 Z"/>
     <path class="white2" d="M113,62 C134,69 137,84 136,105 L126,353 C125,368 116,379 102,382 L114,382 C126,380 134,369 135,356 L151,80 C152,65 143,53 128,52 Z"/>
@@ -77,7 +77,7 @@
     <circle class="dark line" cx="83" cy="440" r="35"/>
   </g>
 
-  <!-- Right foot inner side: side shoe profile, toe points right -->
+  <!-- Inner foot inner side: side shoe profile, toe points right -->
   <g transform="translate(565 1210)">
     <circle class="dark line" cx="165" cy="88" r="42"/>
     <path class="white line" d="M38,187 C63,145 102,107 142,71 C164,51 191,54 211,79 L282,167 L376,185 C397,189 411,206 411,227 L411,255 C411,270 399,282 384,282 L47,282 C29,282 16,267 18,249 L24,216 C26,204 31,195 38,187 Z"/>

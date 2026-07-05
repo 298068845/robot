@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import json
 from pathlib import Path
@@ -8,24 +8,25 @@ from PIL import Image, ImageDraw, ImageFilter
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "assets" / "skins" / "red_power_robot"
+DEFAULT_SKIN_JSON = ROOT / "assets" / "skins" / "default_skin.json"
 DESIGN_OUT = ROOT / "assets" / "designs" / "robot_design_red_power_parts_sheet_v1.png"
 HEAD_SOURCE = ROOT / "assets" / "designs" / "robot_design_red_power_head_rounded_compact_v1.png"
 
 SIZES = {
     "head": (266, 259),
     "torso": (248, 279),
-    "left_upper_arm": (305, 77),
-    "right_upper_arm": (305, 77),
-    "left_forearm": (343, 80),
-    "right_forearm": (343, 80),
-    "left_hand": (296, 163),
-    "right_hand": (296, 163),
-    "left_thigh": (78, 261),
-    "right_thigh": (78, 261),
-    "left_shin": (76, 268),
-    "right_shin": (76, 268),
-    "left_foot": (290, 221),
-    "right_foot": (290, 221),
+    "outer_upper_arm": (305, 77),
+    "inner_upper_arm": (305, 77),
+    "outer_forearm": (343, 80),
+    "inner_forearm": (343, 80),
+    "outer_hand": (296, 163),
+    "inner_hand": (296, 163),
+    "outer_thigh": (78, 261),
+    "inner_thigh": (78, 261),
+    "outer_shin": (76, 268),
+    "inner_shin": (76, 268),
+    "outer_foot": (290, 221),
+    "inner_foot": (290, 221),
 }
 
 WHITE = "#f2f0ea"
@@ -189,8 +190,7 @@ def foot(name: str):
 
 
 def save_skin_json():
-    src = ROOT / "assets" / "skins" / "sport_robot" / "skin.json"
-    data = json.loads(src.read_text(encoding="utf-8"))
+    data = json.loads(DEFAULT_SKIN_JSON.read_text(encoding="utf-8"))
     data["name"] = "red_power_robot"
     data["display_name"] = "Red Power Robot"
     data["base_dir"] = "res://assets/skins/red_power_robot"
@@ -203,18 +203,18 @@ def make_sheet(parts: dict[str, Image.Image]):
     positions = {
         "head": (120, 40),
         "torso": (130, 345),
-        "left_upper_arm": (430, 60),
-        "right_upper_arm": (430, 160),
-        "left_forearm": (410, 260),
-        "right_forearm": (410, 370),
-        "left_hand": (440, 492),
-        "right_hand": (440, 670),
-        "left_thigh": (852, 55),
-        "right_thigh": (954, 55),
-        "left_shin": (853, 360),
-        "right_shin": (955, 360),
-        "left_foot": (785, 672),
-        "right_foot": (785, 802),
+        "outer_upper_arm": (430, 60),
+        "inner_upper_arm": (430, 160),
+        "outer_forearm": (410, 260),
+        "inner_forearm": (410, 370),
+        "outer_hand": (440, 492),
+        "inner_hand": (440, 670),
+        "outer_thigh": (852, 55),
+        "inner_thigh": (954, 55),
+        "outer_shin": (853, 360),
+        "inner_shin": (955, 360),
+        "outer_foot": (785, 672),
+        "inner_foot": (785, 802),
     }
     for name, pos in positions.items():
         sheet.alpha_composite(parts[name], pos)
@@ -229,18 +229,18 @@ def main():
     parts = {
         "head": extract_side_head(),
         "torso": torso(),
-        "left_upper_arm": upper_arm("left_upper_arm", inner=False),
-        "right_upper_arm": upper_arm("right_upper_arm", inner=True),
-        "left_forearm": forearm("left_forearm", inner=False),
-        "right_forearm": forearm("right_forearm", inner=True),
-        "left_hand": hand("left_hand", palm=False),
-        "right_hand": hand("right_hand", palm=True),
-        "left_thigh": thigh("left_thigh", inner=False),
-        "right_thigh": thigh("right_thigh", inner=True),
-        "left_shin": shin("left_shin", inner=False),
-        "right_shin": shin("right_shin", inner=True),
-        "left_foot": foot("left_foot"),
-        "right_foot": foot("right_foot"),
+        "outer_upper_arm": upper_arm("outer_upper_arm", inner=False),
+        "inner_upper_arm": upper_arm("inner_upper_arm", inner=True),
+        "outer_forearm": forearm("outer_forearm", inner=False),
+        "inner_forearm": forearm("inner_forearm", inner=True),
+        "outer_hand": hand("outer_hand", palm=False),
+        "inner_hand": hand("inner_hand", palm=True),
+        "outer_thigh": thigh("outer_thigh", inner=False),
+        "inner_thigh": thigh("inner_thigh", inner=True),
+        "outer_shin": shin("outer_shin", inner=False),
+        "inner_shin": shin("inner_shin", inner=True),
+        "outer_foot": foot("outer_foot"),
+        "inner_foot": foot("inner_foot"),
     }
     for name, im in parts.items():
         im.save(OUT / f"{name}.png")

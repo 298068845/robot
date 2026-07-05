@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import math
 from pathlib import Path
@@ -13,18 +13,18 @@ DESIGNS = ROOT / "assets" / "designs"
 SIZES = {
     "head": (266, 259),
     "torso": (248, 279),
-    "left_upper_arm": (305, 77),
-    "right_upper_arm": (305, 77),
-    "left_forearm": (343, 80),
-    "right_forearm": (343, 80),
-    "left_hand": (296, 163),
-    "right_hand": (296, 163),
-    "left_thigh": (78, 261),
-    "right_thigh": (78, 261),
-    "left_shin": (76, 268),
-    "right_shin": (76, 268),
-    "left_foot": (290, 221),
-    "right_foot": (290, 221),
+    "outer_upper_arm": (305, 77),
+    "inner_upper_arm": (305, 77),
+    "outer_forearm": (343, 80),
+    "inner_forearm": (343, 80),
+    "outer_hand": (296, 163),
+    "inner_hand": (296, 163),
+    "outer_thigh": (78, 261),
+    "inner_thigh": (78, 261),
+    "outer_shin": (76, 268),
+    "inner_shin": (76, 268),
+    "outer_foot": (290, 221),
+    "inner_foot": (290, 221),
 }
 
 RED_DARK = "#8f1014"
@@ -191,18 +191,18 @@ def save_all():
     parts = {
         "head": head(),
         "torso": torso(),
-        "left_upper_arm": limb_horizontal("left_upper_arm", False, False),
-        "right_upper_arm": limb_horizontal("right_upper_arm", False, True),
-        "left_forearm": limb_horizontal("left_forearm", True, False),
-        "right_forearm": limb_horizontal("right_forearm", True, True),
-        "left_hand": hand("left_hand", False),
-        "right_hand": hand("right_hand", True),
-        "left_thigh": limb_vertical("left_thigh", False, False),
-        "right_thigh": limb_vertical("right_thigh", False, True),
-        "left_shin": limb_vertical("left_shin", True, False),
-        "right_shin": limb_vertical("right_shin", True, True),
-        "left_foot": foot("left_foot", False),
-        "right_foot": foot("right_foot", False),
+        "outer_upper_arm": limb_horizontal("outer_upper_arm", False, False),
+        "inner_upper_arm": limb_horizontal("inner_upper_arm", False, True),
+        "outer_forearm": limb_horizontal("outer_forearm", True, False),
+        "inner_forearm": limb_horizontal("inner_forearm", True, True),
+        "outer_hand": hand("outer_hand", False),
+        "inner_hand": hand("inner_hand", True),
+        "outer_thigh": limb_vertical("outer_thigh", False, False),
+        "inner_thigh": limb_vertical("inner_thigh", False, True),
+        "outer_shin": limb_vertical("outer_shin", True, False),
+        "inner_shin": limb_vertical("inner_shin", True, True),
+        "outer_foot": foot("outer_foot", False),
+        "inner_foot": foot("inner_foot", False),
     }
     for name, im in parts.items():
         im.save(OUT / f"{name}.png")
@@ -213,18 +213,18 @@ def save_all():
     positions = {
         "head": (128, 42),
         "torso": (137, 340),
-        "left_upper_arm": (438, 62),
-        "right_upper_arm": (438, 162),
-        "left_forearm": (418, 262),
-        "right_forearm": (418, 372),
-        "left_hand": (442, 486),
-        "right_hand": (442, 662),
-        "left_thigh": (852, 52),
-        "right_thigh": (954, 52),
-        "left_shin": (854, 360),
-        "right_shin": (956, 360),
-        "left_foot": (786, 670),
-        "right_foot": (786, 790),
+        "outer_upper_arm": (438, 62),
+        "inner_upper_arm": (438, 162),
+        "outer_forearm": (418, 262),
+        "inner_forearm": (418, 372),
+        "outer_hand": (442, 486),
+        "inner_hand": (442, 662),
+        "outer_thigh": (852, 52),
+        "inner_thigh": (954, 52),
+        "outer_shin": (854, 360),
+        "inner_shin": (956, 360),
+        "outer_foot": (786, 670),
+        "inner_foot": (786, 790),
     }
     for name, pos in positions.items():
         sheet.alpha_composite(parts[name], pos)

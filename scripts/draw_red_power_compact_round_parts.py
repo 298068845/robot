@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import json
 from pathlib import Path
@@ -8,24 +8,25 @@ from PIL import Image, ImageDraw
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "assets" / "skins" / "red_power_compact_round_drawn"
+DEFAULT_SKIN_JSON = ROOT / "assets" / "skins" / "default_skin.json"
 SHEET = ROOT / "assets" / "designs" / "robot_design_red_power_compact_round_drawn_parts_v1.png"
 SOURCE = ROOT / "assets" / "designs" / "robot_design_red_power_from_compact_round_head_front_side_v1.png"
 
 SIZES = {
     "head": (266, 259),
     "torso": (248, 279),
-    "left_upper_arm": (305, 77),
-    "right_upper_arm": (305, 77),
-    "left_forearm": (343, 80),
-    "right_forearm": (343, 80),
-    "left_hand": (296, 163),
-    "right_hand": (296, 163),
-    "left_thigh": (78, 261),
-    "right_thigh": (78, 261),
-    "left_shin": (76, 268),
-    "right_shin": (76, 268),
-    "left_foot": (290, 221),
-    "right_foot": (290, 221),
+    "outer_upper_arm": (305, 77),
+    "inner_upper_arm": (305, 77),
+    "outer_forearm": (343, 80),
+    "inner_forearm": (343, 80),
+    "outer_hand": (296, 163),
+    "inner_hand": (296, 163),
+    "outer_thigh": (78, 261),
+    "inner_thigh": (78, 261),
+    "outer_shin": (76, 268),
+    "inner_shin": (76, 268),
+    "outer_foot": (290, 221),
+    "inner_foot": (290, 221),
 }
 
 WHITE = "#f3f1eb"
@@ -112,7 +113,7 @@ def torso():
 
 
 def arm_upper(inner=False):
-    im, d = make("left_upper_arm")
+    im, d = make("outer_upper_arm")
     panel(d, [(20, 38), (57, 13), (150, 9), (246, 18), (287, 35), (270, 63), (143, 68), (55, 62)], WHITE)
     panel(d, [(164, 18), (247, 21), (281, 35), (258, 55), (169, 55)], WHITE_SHADE if inner else RED)
     panel(d, [(22, 23), (61, 9), (70, 67), (25, 56)], GRAPHITE, False)
@@ -122,7 +123,7 @@ def arm_upper(inner=False):
 
 
 def forearm(inner=False):
-    im, d = make("left_forearm")
+    im, d = make("outer_forearm")
     panel(d, [(22, 40), (77, 11), (228, 10), (316, 27), (327, 51), (270, 70), (82, 69), (25, 56)], WHITE)
     panel(d, [(204, 17), (313, 31), (318, 50), (215, 60)], WHITE_SHADE if inner else RED)
     panel(d, [(52, 35), (119, 20), (151, 34), (119, 56), (52, 58)], WHITE_SHADE)
@@ -133,7 +134,7 @@ def forearm(inner=False):
 
 
 def hand(palm=False):
-    im, d = make("left_hand")
+    im, d = make("outer_hand")
     rounded(d, (28, 57, 72, 122), 13, RED, width=3)
     panel(d, [(63, 70), (124, 50), (180, 64), (197, 105), (143, 134), (80, 124)], WHITE)
     panel(d, [(90, 74), (145, 61), (180, 79), (166, 116), (102, 120)], WHITE if palm else RED)
@@ -151,7 +152,7 @@ def hand(palm=False):
 
 
 def thigh(inner=False):
-    im, d = make("left_thigh")
+    im, d = make("outer_thigh")
     cx = 39
     panel(d, [(17, 16), (58, 16), (70, 78), (63, 196), (50, 246), (25, 246), (12, 196), (7, 78)], WHITE)
     panel(d, [(43, 55), (67, 83), (60, 190), (42, 222)], WHITE_SHADE if inner else RED)
@@ -161,7 +162,7 @@ def thigh(inner=False):
 
 
 def shin(inner=False):
-    im, d = make("left_shin")
+    im, d = make("outer_shin")
     panel(d, [(16, 14), (57, 14), (69, 92), (63, 216), (50, 257), (24, 257), (10, 216), (7, 92)], WHITE)
     panel(d, [(40, 58), (66, 88), (60, 199), (42, 236)], WHITE_SHADE if inner else RED)
     rounded(d, (20, 15, 56, 43), 8, GRAPHITE, width=3)
@@ -171,7 +172,7 @@ def shin(inner=False):
 
 
 def foot():
-    im, d = make("left_foot")
+    im, d = make("outer_foot")
     panel(d, [(27, 119), (87, 77), (185, 80), (256, 112), (271, 147), (232, 177), (72, 174), (21, 151)], WHITE)
     panel(d, [(150, 89), (252, 113), (267, 143), (218, 162), (139, 145)], RED)
     panel(d, [(50, 133), (230, 136), (252, 158), (228, 188), (54, 187), (22, 156)], GRAPHITE)
@@ -182,8 +183,7 @@ def foot():
 
 
 def skin_json():
-    src = ROOT / "assets" / "skins" / "sport_robot" / "skin.json"
-    data = json.loads(src.read_text(encoding="utf-8"))
+    data = json.loads(DEFAULT_SKIN_JSON.read_text(encoding="utf-8"))
     data["name"] = "red_power_compact_round_drawn"
     data["display_name"] = "Red Power Compact Round Drawn"
     data["base_dir"] = "res://assets/skins/red_power_compact_round_drawn"
@@ -196,18 +196,18 @@ def sheet(parts: dict[str, Image.Image]):
     positions = {
         "head": (120, 40),
         "torso": (130, 345),
-        "left_upper_arm": (430, 60),
-        "right_upper_arm": (430, 160),
-        "left_forearm": (410, 260),
-        "right_forearm": (410, 370),
-        "left_hand": (440, 492),
-        "right_hand": (440, 670),
-        "left_thigh": (852, 55),
-        "right_thigh": (954, 55),
-        "left_shin": (853, 360),
-        "right_shin": (955, 360),
-        "left_foot": (785, 672),
-        "right_foot": (785, 802),
+        "outer_upper_arm": (430, 60),
+        "inner_upper_arm": (430, 160),
+        "outer_forearm": (410, 260),
+        "inner_forearm": (410, 370),
+        "outer_hand": (440, 492),
+        "inner_hand": (440, 670),
+        "outer_thigh": (852, 55),
+        "inner_thigh": (954, 55),
+        "outer_shin": (853, 360),
+        "inner_shin": (955, 360),
+        "outer_foot": (785, 672),
+        "inner_foot": (785, 802),
     }
     for name, pos in positions.items():
         sheet_im.alpha_composite(parts[name], pos)
@@ -221,18 +221,18 @@ def main():
     parts = {
         "head": head(),
         "torso": torso(),
-        "left_upper_arm": arm_upper(inner=False),
-        "right_upper_arm": arm_upper(inner=True),
-        "left_forearm": forearm(inner=False),
-        "right_forearm": forearm(inner=True),
-        "left_hand": hand(palm=False),
-        "right_hand": hand(palm=True),
-        "left_thigh": thigh(inner=False),
-        "right_thigh": thigh(inner=True),
-        "left_shin": shin(inner=False),
-        "right_shin": shin(inner=True),
-        "left_foot": foot(),
-        "right_foot": foot(),
+        "outer_upper_arm": arm_upper(inner=False),
+        "inner_upper_arm": arm_upper(inner=True),
+        "outer_forearm": forearm(inner=False),
+        "inner_forearm": forearm(inner=True),
+        "outer_hand": hand(palm=False),
+        "inner_hand": hand(palm=True),
+        "outer_thigh": thigh(inner=False),
+        "inner_thigh": thigh(inner=True),
+        "outer_shin": shin(inner=False),
+        "inner_shin": shin(inner=True),
+        "outer_foot": foot(),
+        "inner_foot": foot(),
     }
     slot_save(parts)
     skin_json()

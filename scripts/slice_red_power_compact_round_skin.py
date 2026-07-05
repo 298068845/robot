@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import json
 from pathlib import Path
@@ -9,23 +9,24 @@ from PIL import Image, ImageChops, ImageFilter
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / "assets" / "designs" / "robot_design_red_power_from_compact_round_head_front_side_v1.png"
 OUT = ROOT / "assets" / "skins" / "red_power_compact_round"
+DEFAULT_SKIN_JSON = ROOT / "assets" / "skins" / "default_skin.json"
 SHEET = ROOT / "assets" / "designs" / "robot_design_red_power_compact_round_parts_sheet_v1.png"
 
 SIZES = {
     "head": (266, 259),
     "torso": (248, 279),
-    "left_upper_arm": (305, 77),
-    "right_upper_arm": (305, 77),
-    "left_forearm": (343, 80),
-    "right_forearm": (343, 80),
-    "left_hand": (296, 163),
-    "right_hand": (296, 163),
-    "left_thigh": (78, 261),
-    "right_thigh": (78, 261),
-    "left_shin": (76, 268),
-    "right_shin": (76, 268),
-    "left_foot": (290, 221),
-    "right_foot": (290, 221),
+    "outer_upper_arm": (305, 77),
+    "inner_upper_arm": (305, 77),
+    "outer_forearm": (343, 80),
+    "inner_forearm": (343, 80),
+    "outer_hand": (296, 163),
+    "inner_hand": (296, 163),
+    "outer_thigh": (78, 261),
+    "inner_thigh": (78, 261),
+    "outer_shin": (76, 268),
+    "inner_shin": (76, 268),
+    "outer_foot": (290, 221),
+    "inner_foot": (290, 221),
 }
 
 # Crop boxes are from the confirmed side-view character in SOURCE.
@@ -98,25 +99,24 @@ def build_parts() -> dict[str, Image.Image]:
     parts = {
         "head": head,
         "torso": torso,
-        "left_upper_arm": fit_to_slot(upper, SIZES["left_upper_arm"], max_fill=(0.9, 0.84)),
-        "right_upper_arm": fit_to_slot(upper, SIZES["right_upper_arm"], max_fill=(0.9, 0.84)),
-        "left_forearm": fit_to_slot(forearm, SIZES["left_forearm"], max_fill=(0.9, 0.84)),
-        "right_forearm": fit_to_slot(forearm, SIZES["right_forearm"], max_fill=(0.9, 0.84)),
-        "left_hand": fit_to_slot(hand, SIZES["left_hand"], max_fill=(0.62, 0.76), offset=(-8, 0)),
-        "right_hand": fit_to_slot(hand, SIZES["right_hand"], max_fill=(0.62, 0.76), offset=(-8, 0)),
-        "left_thigh": fit_to_slot(thigh, SIZES["left_thigh"], max_fill=(0.88, 0.9)),
-        "right_thigh": fit_to_slot(thigh, SIZES["right_thigh"], max_fill=(0.88, 0.9)),
-        "left_shin": fit_to_slot(shin, SIZES["left_shin"], max_fill=(0.88, 0.92)),
-        "right_shin": fit_to_slot(shin, SIZES["right_shin"], max_fill=(0.88, 0.92)),
-        "left_foot": fit_to_slot(foot, SIZES["left_foot"], max_fill=(0.88, 0.76), offset=(-4, 8)),
-        "right_foot": fit_to_slot(foot, SIZES["right_foot"], max_fill=(0.88, 0.76), offset=(-4, 8)),
+        "outer_upper_arm": fit_to_slot(upper, SIZES["outer_upper_arm"], max_fill=(0.9, 0.84)),
+        "inner_upper_arm": fit_to_slot(upper, SIZES["inner_upper_arm"], max_fill=(0.9, 0.84)),
+        "outer_forearm": fit_to_slot(forearm, SIZES["outer_forearm"], max_fill=(0.9, 0.84)),
+        "inner_forearm": fit_to_slot(forearm, SIZES["inner_forearm"], max_fill=(0.9, 0.84)),
+        "outer_hand": fit_to_slot(hand, SIZES["outer_hand"], max_fill=(0.62, 0.76), offset=(-8, 0)),
+        "inner_hand": fit_to_slot(hand, SIZES["inner_hand"], max_fill=(0.62, 0.76), offset=(-8, 0)),
+        "outer_thigh": fit_to_slot(thigh, SIZES["outer_thigh"], max_fill=(0.88, 0.9)),
+        "inner_thigh": fit_to_slot(thigh, SIZES["inner_thigh"], max_fill=(0.88, 0.9)),
+        "outer_shin": fit_to_slot(shin, SIZES["outer_shin"], max_fill=(0.88, 0.92)),
+        "inner_shin": fit_to_slot(shin, SIZES["inner_shin"], max_fill=(0.88, 0.92)),
+        "outer_foot": fit_to_slot(foot, SIZES["outer_foot"], max_fill=(0.88, 0.76), offset=(-4, 8)),
+        "inner_foot": fit_to_slot(foot, SIZES["inner_foot"], max_fill=(0.88, 0.76), offset=(-4, 8)),
     }
     return parts
 
 
 def write_skin_json():
-    src_json = ROOT / "assets" / "skins" / "sport_robot" / "skin.json"
-    data = json.loads(src_json.read_text(encoding="utf-8"))
+    data = json.loads(DEFAULT_SKIN_JSON.read_text(encoding="utf-8"))
     data["name"] = "red_power_compact_round"
     data["display_name"] = "Red Power Compact Round"
     data["base_dir"] = "res://assets/skins/red_power_compact_round"
@@ -128,18 +128,18 @@ def make_sheet(parts: dict[str, Image.Image]):
     positions = {
         "head": (120, 40),
         "torso": (130, 345),
-        "left_upper_arm": (430, 60),
-        "right_upper_arm": (430, 160),
-        "left_forearm": (410, 260),
-        "right_forearm": (410, 370),
-        "left_hand": (440, 492),
-        "right_hand": (440, 670),
-        "left_thigh": (852, 55),
-        "right_thigh": (954, 55),
-        "left_shin": (853, 360),
-        "right_shin": (955, 360),
-        "left_foot": (785, 672),
-        "right_foot": (785, 802),
+        "outer_upper_arm": (430, 60),
+        "inner_upper_arm": (430, 160),
+        "outer_forearm": (410, 260),
+        "inner_forearm": (410, 370),
+        "outer_hand": (440, 492),
+        "inner_hand": (440, 670),
+        "outer_thigh": (852, 55),
+        "inner_thigh": (954, 55),
+        "outer_shin": (853, 360),
+        "inner_shin": (955, 360),
+        "outer_foot": (785, 672),
+        "inner_foot": (785, 802),
     }
     from PIL import ImageDraw
 

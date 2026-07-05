@@ -16,39 +16,108 @@ const EXPORT_SIZE := Vector2i(960, 720)
 const TEXTURE_MANIFEST_PATH := "res://assets/parts/male_tinpet/manifest.json"
 const DEFAULT_TEXTURE_DIR := "res://assets/parts/male_tinpet"
 const SKIN_ROOT := "res://assets/skins"
-const DEFAULT_SKIN_PATH := "res://assets/skins/male_tinpet/skin.json"
+const DEFAULT_SKIN_PATH := "res://assets/skins/sport_robot/skin.json"
+const DEFAULT_SKIN_TEMPLATE_PATH := "res://assets/skins/default_skin.json"
 const SAVE_PATH := "user://stick_figure_actions.json"
 const PART_SLOT_IDS := [
 	"head",
 	"torso",
-	"left_upper_arm",
-	"left_forearm",
-	"right_upper_arm",
-	"right_forearm",
-	"left_thigh",
-	"left_shin",
-	"left_foot",
-	"right_thigh",
-	"right_shin",
-	"right_foot",
-	"left_hand",
-	"right_hand",
+	"outer_upper_arm",
+	"outer_forearm",
+	"inner_upper_arm",
+	"inner_forearm",
+	"outer_thigh",
+	"outer_shin",
+	"outer_foot",
+	"inner_thigh",
+	"inner_shin",
+	"inner_foot",
+	"outer_hand",
+	"inner_hand",
+]
+const SYMMETRY_SLOT_PAIRS := [
+	["outer_upper_arm", "inner_upper_arm"],
+	["outer_forearm", "inner_forearm"],
+	["outer_thigh", "inner_thigh"],
+	["outer_shin", "inner_shin"],
+	["outer_foot", "inner_foot"],
+	["outer_hand", "inner_hand"],
 ]
 const PART_DISPLAY_NAMES := {
 	"head": "头部",
 	"torso": "躯干",
-	"left_upper_arm": "左上臂",
-	"left_forearm": "左前臂",
-	"right_upper_arm": "右上臂",
-	"right_forearm": "右前臂",
-	"left_thigh": "左大腿",
-	"left_shin": "左小腿",
-	"left_foot": "左脚掌",
-	"right_thigh": "右大腿",
-	"right_shin": "右小腿",
-	"right_foot": "右脚掌",
-	"left_hand": "左手掌",
-	"right_hand": "右手掌",
+	"outer_upper_arm": "外侧上臂",
+	"outer_forearm": "外侧前臂",
+	"inner_upper_arm": "里侧上臂",
+	"inner_forearm": "里侧前臂",
+	"outer_thigh": "外侧大腿",
+	"outer_shin": "外侧小腿",
+	"outer_foot": "外侧脚掌",
+	"inner_thigh": "里侧大腿",
+	"inner_shin": "里侧小腿",
+	"inner_foot": "里侧脚掌",
+	"outer_hand": "外侧手掌",
+	"inner_hand": "里侧手掌",
+}
+const LEGACY_PART_SLOT_IDS := {
+	"left_upper_arm": "outer_upper_arm",
+	"left_forearm": "outer_forearm",
+	"left_thigh": "outer_thigh",
+	"left_shin": "outer_shin",
+	"left_foot": "outer_foot",
+	"left_hand": "outer_hand",
+	"right_upper_arm": "inner_upper_arm",
+	"right_forearm": "inner_forearm",
+	"right_thigh": "inner_thigh",
+	"right_shin": "inner_shin",
+	"right_foot": "inner_foot",
+	"right_hand": "inner_hand",
+}
+const PART_DEFAULT_JOINTS := {
+	"head": ["head_top", "neck"],
+	"torso": ["neck", "pelvis"],
+	"outer_upper_arm": ["neck", "left_elbow"],
+	"outer_forearm": ["left_elbow", "left_wrist"],
+	"inner_upper_arm": ["neck", "right_elbow"],
+	"inner_forearm": ["right_elbow", "right_wrist"],
+	"outer_thigh": ["pelvis", "left_knee"],
+	"outer_shin": ["left_knee", "left_ankle"],
+	"outer_foot": ["left_ankle", "left_toe"],
+	"inner_thigh": ["pelvis", "right_knee"],
+	"inner_shin": ["right_knee", "right_ankle"],
+	"inner_foot": ["right_ankle", "right_toe"],
+	"outer_hand": ["left_wrist", "outer_hand"],
+	"inner_hand": ["right_wrist", "inner_hand"],
+}
+const TEXTURE_DISPLAY_NAMES := {
+	"head_side": "头部",
+	"torso_side": "躯干",
+	"shoulder_joint": "肩关节",
+	"neck_connector": "颈部连接件",
+	"hand_side": "手掌",
+	"forearm_tube": "前臂",
+	"upper_arm_tube": "上臂",
+	"thigh_tube": "大腿",
+	"shin_tube": "小腿",
+	"knee_joint": "膝关节",
+	"ankle_joint": "踝关节",
+	"foot_side": "脚掌",
+}
+const SKIN_TEXTURE_DISPLAY_NAMES := {
+	"head": "头部",
+	"torso": "躯干",
+	"outer_upper_arm": "外侧上臂",
+	"outer_forearm": "外侧前臂",
+	"inner_upper_arm": "里侧上臂",
+	"inner_forearm": "里侧前臂",
+	"outer_thigh": "外侧大腿",
+	"outer_shin": "外侧小腿",
+	"outer_foot": "外侧脚掌",
+	"inner_thigh": "里侧大腿",
+	"inner_shin": "里侧小腿",
+	"inner_foot": "里侧脚掌",
+	"outer_hand": "外侧手掌",
+	"inner_hand": "里侧手掌",
 }
 
 var parts: Array = []
@@ -62,6 +131,8 @@ var current_skin_path := DEFAULT_SKIN_PATH
 var current_skin := {}
 var lock_first_frame_lengths := false
 var locked_part_lengths: Array = []
+var show_handles := true
+var symmetry_enabled := false
 var selected_part := 0
 var selected_frame := 0
 var drag_part := -1
@@ -84,6 +155,8 @@ var action_group_picker: OptionButton
 var source_group_picker: OptionButton
 var skin_picker: OptionButton
 var length_lock_button: Button
+var handles_toggle_button: Button
+var symmetry_toggle_button: Button
 var bone_picker: OptionButton
 var texture_picker: OptionButton
 var add_image_button: Button
@@ -278,6 +351,21 @@ func _build_ui() -> void:
 	length_lock_button.toggled.connect(_toggle_length_lock)
 	frame_action_grid.add_child(length_lock_button)
 
+	handles_toggle_button = Button.new()
+	handles_toggle_button.text = "隐藏圆点"
+	handles_toggle_button.custom_minimum_size = Vector2(0, 26)
+	handles_toggle_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	handles_toggle_button.pressed.connect(_toggle_handles_visibility)
+	frame_action_grid.add_child(handles_toggle_button)
+
+	symmetry_toggle_button = Button.new()
+	symmetry_toggle_button.toggle_mode = true
+	symmetry_toggle_button.text = "开启对称"
+	symmetry_toggle_button.custom_minimum_size = Vector2(0, 26)
+	symmetry_toggle_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	symmetry_toggle_button.toggled.connect(_toggle_symmetry)
+	frame_action_grid.add_child(symmetry_toggle_button)
+
 	var binding_title := Label.new()
 	binding_title.text = "线条贴图绑定"
 	binding_title.add_theme_color_override("font_color", Color.WHITE)
@@ -285,7 +373,7 @@ func _build_ui() -> void:
 	root.add_child(binding_title)
 
 	var skin_grid := GridContainer.new()
-	skin_grid.columns = 3
+	skin_grid.columns = 4
 	skin_grid.add_theme_constant_override("h_separation", 6)
 	skin_grid.add_theme_constant_override("v_separation", 4)
 	root.add_child(skin_grid)
@@ -309,6 +397,13 @@ func _build_ui() -> void:
 	apply_part_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	apply_part_button.pressed.connect(_apply_current_skin_to_selected_part)
 	skin_grid.add_child(apply_part_button)
+
+	var save_default_skin_button := Button.new()
+	save_default_skin_button.text = "设为默认"
+	save_default_skin_button.custom_minimum_size = Vector2(0, 26)
+	save_default_skin_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	save_default_skin_button.pressed.connect(_save_current_bindings_as_default_skin)
+	skin_grid.add_child(save_default_skin_button)
 
 	texture_picker = OptionButton.new()
 	texture_picker.custom_minimum_size = Vector2(0, 32)
@@ -621,17 +716,14 @@ func _open_image_file_dialog() -> void:
 
 func _add_custom_texture_option(path: String) -> void:
 	var file_name := path.get_file()
-	var display_name := file_name.get_basename()
+	var display_name := _display_name_for_texture(file_name.get_basename(), path)
 	for i in range(texture_options.size()):
 		if String(texture_options[i].get("path", "")) == path:
 			_select_texture_option(i)
 			if export_label != null:
 				export_label.text = "Applied existing image to current bone."
 			return
-	texture_options.append({"name": display_name, "path": path})
-	if texture_picker != null:
-		texture_picker.add_item(display_name)
-	_select_texture_option(texture_options.size() - 1)
+	_select_texture_option(_add_texture_option(display_name, path))
 	if export_label != null:
 		export_label.text = "Added %s and applied it to the current bone." % display_name
 
@@ -641,6 +733,47 @@ func _select_texture_option(index: int) -> void:
 	texture_picker.select(index)
 	_apply_selected_texture_to_current_part()
 	_update_binding_controls()
+
+func _add_texture_option(display_name: String, path: String) -> int:
+	if path != "" and not _texture_path_exists(path):
+		return -1
+	for i in range(texture_options.size()):
+		if String(texture_options[i].get("path", "")) == path:
+			if display_name != "" and String(texture_options[i].get("name", "")) != display_name:
+				texture_options[i]["name"] = display_name
+				if texture_picker != null:
+					texture_picker.set_item_text(i, display_name)
+			return i
+	texture_options.append({"name": display_name, "path": path})
+	if texture_picker != null:
+		texture_picker.add_item(display_name)
+	return texture_options.size() - 1
+
+func _texture_path_exists(path: String) -> bool:
+	if path == "":
+		return true
+	return FileAccess.file_exists(path)
+
+func _ensure_texture_option_for_binding(binding: Dictionary, slot_id := "") -> int:
+	var path := String(binding.get("path", ""))
+	if path == "":
+		return 0
+	var display_name := _display_name_for_texture(String(binding.get("name", "")), path)
+	return _add_texture_option(display_name, path)
+
+func _display_name_for_texture(name: String, path: String, slot_id := "") -> String:
+	if slot_id != "" and PART_DISPLAY_NAMES.has(slot_id):
+		return String(PART_DISPLAY_NAMES[slot_id])
+	var basename := path.get_file().get_basename()
+	if SKIN_TEXTURE_DISPLAY_NAMES.has(basename):
+		return String(SKIN_TEXTURE_DISPLAY_NAMES[basename])
+	if TEXTURE_DISPLAY_NAMES.has(basename):
+		return String(TEXTURE_DISPLAY_NAMES[basename])
+	if TEXTURE_DISPLAY_NAMES.has(name):
+		return String(TEXTURE_DISPLAY_NAMES[name])
+	if name != "":
+		return name
+	return basename
 
 func _load_project_or_default() -> void:
 	if _load_project():
@@ -664,12 +797,14 @@ func _load_project() -> bool:
 	var saved_options = parsed.get("texture_options", [])
 	if saved_options is Array and not saved_options.is_empty():
 		texture_options.clear()
+		texture_options.append({"name": "无图片", "path": ""})
 		for option in saved_options:
 			if option is Dictionary:
-				texture_options.append({
-					"name": String(option.get("name", "")),
-					"path": String(option.get("path", "")),
-				})
+				var path := String(option.get("path", ""))
+				if path == "" or not _texture_path_exists(path):
+					continue
+				var display_name := _display_name_for_texture(String(option.get("name", "")), path)
+				_add_texture_option(display_name, path)
 	var groups = parsed.get("action_groups", [])
 	if not groups is Array or groups.is_empty():
 		return false
@@ -691,6 +826,7 @@ func _load_project() -> bool:
 	current_skin_path = String(parsed.get("current_skin_path", current_skin_path))
 	_load_skin(current_skin_path)
 	lock_first_frame_lengths = bool(parsed.get("lock_first_frame_lengths", false))
+	symmetry_enabled = bool(parsed.get("symmetry_enabled", false))
 	locked_part_lengths = _deserialize_float_array(parsed.get("locked_part_lengths", []))
 	image_picker_dir = String(parsed.get("image_picker_dir", DEFAULT_TEXTURE_DIR))
 	frames = action_groups[selected_group]["frames"]
@@ -708,6 +844,7 @@ func _save_project() -> void:
 		"selected_group": selected_group,
 		"current_skin_path": current_skin_path,
 		"lock_first_frame_lengths": lock_first_frame_lengths,
+		"symmetry_enabled": symmetry_enabled,
 		"locked_part_lengths": locked_part_lengths,
 		"image_picker_dir": image_picker_dir,
 		"texture_options": texture_options,
@@ -724,16 +861,16 @@ func _save_project() -> void:
 
 func _load_texture_options() -> void:
 	texture_options.clear()
-	texture_options.append({"name": "No Image", "path": ""})
-	var raw := FileAccess.get_file_as_string(TEXTURE_MANIFEST_PATH)
-	var parsed = JSON.parse_string(raw)
-	if parsed is Array:
-		for item in parsed:
-			if item is Dictionary and item.has("name") and item.has("file"):
-				texture_options.append({
-					"name": String(item["name"]),
-					"path": "res://%s" % String(item["file"]),
-				})
+	texture_options.append({"name": "无图片", "path": ""})
+	if FileAccess.file_exists(TEXTURE_MANIFEST_PATH):
+		var raw := FileAccess.get_file_as_string(TEXTURE_MANIFEST_PATH)
+		var parsed = JSON.parse_string(raw)
+		if parsed is Array:
+			for item in parsed:
+				if item is Dictionary and item.has("name") and item.has("file"):
+					var item_path := "res://%s" % String(item["file"])
+					var item_name := _display_name_for_texture(String(item["name"]), item_path)
+					_add_texture_option(item_name, item_path)
 	if texture_options.size() > 1:
 		return
 	var fallback_names := [
@@ -747,10 +884,8 @@ func _load_texture_options() -> void:
 		"foot_side",
 	]
 	for texture_name in fallback_names:
-		texture_options.append({
-			"name": texture_name,
-			"path": "res://assets/parts/male_tinpet/%s.png" % texture_name,
-		})
+		var texture_path := "res://assets/parts/male_tinpet/%s.png" % texture_name
+		_add_texture_option(_display_name_for_texture(texture_name, texture_path), texture_path)
 
 func _load_skin_options() -> void:
 	skin_options.clear()
@@ -771,7 +906,7 @@ func _load_skin_options() -> void:
 			entry = dir.get_next()
 		dir.list_dir_end()
 	if skin_options.is_empty():
-		skin_options.append({"name": "Male Tinpet", "path": DEFAULT_SKIN_PATH})
+		skin_options.append({"name": "Sport Robot", "path": DEFAULT_SKIN_PATH})
 
 func _load_skin(path: String) -> bool:
 	if path == "":
@@ -783,7 +918,22 @@ func _load_skin(path: String) -> bool:
 		return false
 	current_skin_path = path
 	current_skin = parsed
+	_register_current_skin_texture_options()
 	return true
+
+func _register_current_skin_texture_options() -> void:
+	if current_skin.is_empty():
+		return
+	var slots: Dictionary = current_skin.get("slots", {})
+	for slot_id in slots.keys():
+		var slot = slots[slot_id]
+		if not slot is Dictionary:
+			continue
+		var texture_path := _skin_texture_path(slot)
+		if texture_path == "":
+			continue
+		var display_name := String(PART_DISPLAY_NAMES.get(String(slot_id), texture_path.get_file().get_basename()))
+		_add_texture_option(display_name, texture_path)
 
 func _rebuild_skin_picker() -> void:
 	if skin_picker == null:
@@ -821,6 +971,8 @@ func _apply_current_skin_to_all_frames() -> void:
 		_ensure_required_parts(frame_parts)
 		for part_index in range(frame_parts.size()):
 			var binding := _binding_from_skin_for_part(frame_parts[part_index], part_index)
+			binding = _merge_skin_binding_with_existing(binding, frame_parts[part_index].get("binding", {}))
+			_ensure_texture_option_for_binding(binding, _part_slot_id(frame_parts[part_index], part_index))
 			frame_parts[part_index]["binding"] = binding
 			if not binding.is_empty():
 				applied_count += 1
@@ -848,6 +1000,8 @@ func _apply_current_skin_to_selected_part() -> void:
 		var binding := _binding_from_skin_for_part(frame_parts[target_index], target_index)
 		if binding.is_empty():
 			continue
+		binding = _merge_skin_binding_with_existing(binding, frame_parts[target_index].get("binding", {}))
+		_ensure_texture_option_for_binding(binding, slot_id)
 		frame_parts[target_index]["binding"] = binding
 		applied_count += 1
 		frame["parts"] = frame_parts
@@ -858,6 +1012,150 @@ func _apply_current_skin_to_selected_part() -> void:
 		else:
 			export_label.text = "Current skin has no usable slot for %s." % slot_id
 	_save_project()
+
+func _save_current_bindings_as_default_skin() -> void:
+	_save_current_frame()
+	var default_skin := _skin_with_current_bindings(_default_skin_template_base(), DEFAULT_SKIN_TEMPLATE_PATH)
+	if default_skin.is_empty():
+		if export_label != null:
+			export_label.text = "No texture bindings available for default skin."
+		return
+	var wrote_default := _write_skin_json(DEFAULT_SKIN_TEMPLATE_PATH, default_skin)
+	var wrote_skin_count := 0
+	if wrote_default:
+		wrote_skin_count = _write_default_bindings_to_all_skins(default_skin)
+		_load_skin(current_skin_path)
+		_register_current_skin_texture_options()
+	if wrote_default:
+		_load_skin(current_skin_path)
+	if export_label != null:
+		if wrote_default:
+			export_label.text = "Saved current bindings as default template and applied them to %d skins." % wrote_skin_count
+		else:
+			export_label.text = "Failed to write default skin template."
+
+func _default_skin_template_base() -> Dictionary:
+	return {
+		"schema": "robot_skin_v1",
+		"name": "default_skin",
+		"display_name": "Default Skin",
+		"base_dir": "res://assets/skins/sport_robot",
+		"slots": {},
+	}
+
+func _skin_with_current_bindings(source_skin: Dictionary, source_path: String) -> Dictionary:
+	var skin := _clean_skin_base(source_skin, source_path)
+	var slots: Dictionary = skin.get("slots", {})
+	for part_index in range(parts.size()):
+		var part: Dictionary = parts[part_index]
+		var binding: Dictionary = part.get("binding", {})
+		if binding.is_empty():
+			continue
+		var slot_id := _part_slot_id(part, part_index)
+		slots[slot_id] = _skin_slot_from_binding(binding, slots.get(slot_id, {}), source_path)
+	skin["slots"] = slots
+	return skin
+
+func _clean_skin_base(source_skin: Dictionary, source_path: String) -> Dictionary:
+	var skin_dir := source_path.get_base_dir()
+	var fallback_name := skin_dir.get_file()
+	var skin := {
+		"schema": "robot_skin_v1",
+		"name": fallback_name,
+		"display_name": _title_from_id(fallback_name),
+		"base_dir": skin_dir,
+		"slots": {},
+	}
+	if source_skin.is_empty():
+		return skin
+	if source_skin.has("schema"):
+		skin["schema"] = String(source_skin.get("schema", "robot_skin_v1"))
+	if source_skin.has("name"):
+		skin["name"] = String(source_skin.get("name", fallback_name))
+	if source_skin.has("display_name"):
+		skin["display_name"] = String(source_skin.get("display_name", _title_from_id(fallback_name)))
+	if source_skin.has("base_dir"):
+		skin["base_dir"] = String(source_skin.get("base_dir", skin_dir))
+	if source_skin.get("slots", {}) is Dictionary:
+		skin["slots"] = source_skin.get("slots", {}).duplicate(true)
+	return skin
+
+func _title_from_id(value: String) -> String:
+	var words := value.replace("-", "_").split("_", false)
+	for i in range(words.size()):
+		var word := String(words[i])
+		if word.length() > 0:
+			words[i] = word.substr(0, 1).to_upper() + word.substr(1)
+	return " ".join(words)
+
+func _skin_slot_from_binding(binding: Dictionary, fallback_slot, skin_path: String) -> Dictionary:
+	var fallback: Dictionary = fallback_slot if fallback_slot is Dictionary else {}
+	var path := String(binding.get("path", ""))
+	var texture_name := path.get_file()
+	if texture_name == "":
+		texture_name = String(fallback.get("texture", ""))
+	return {
+		"texture": texture_name,
+		"scale": float(binding.get("scale", fallback.get("scale", 1.0))),
+		"offset": _serialize_vector2(binding.get("offset", _deserialize_vector2(fallback.get("offset", [0.0, 0.0])))),
+		"rotation": float(binding.get("rotation", fallback.get("rotation", 0.0))),
+		"mirror": bool(binding.get("mirror", fallback.get("mirror", false))),
+		"layer": int(binding.get("layer", fallback.get("layer", 0))),
+		"opacity": float(binding.get("opacity", fallback.get("opacity", 1.0))),
+	}
+
+func _write_default_bindings_to_all_skins(default_skin: Dictionary) -> int:
+	var default_slots: Dictionary = default_skin.get("slots", {})
+	if default_slots.is_empty():
+		return 0
+	var wrote_count := 0
+	for skin_path in _skin_json_paths():
+		var raw := FileAccess.get_file_as_string(skin_path)
+		var parsed = JSON.parse_string(raw)
+		var source_skin: Dictionary = parsed if parsed is Dictionary else {}
+		var skin := _skin_with_default_binding_slots(source_skin, skin_path, default_slots)
+		if _write_skin_json(skin_path, skin):
+			wrote_count += 1
+	return wrote_count
+
+func _skin_json_paths() -> Array:
+	var paths: Array = []
+	var dir := DirAccess.open(SKIN_ROOT)
+	if dir == null:
+		return paths
+	dir.list_dir_begin()
+	var entry := dir.get_next()
+	while entry != "":
+		if dir.current_is_dir() and not entry.begins_with("."):
+			var skin_path := "%s/%s/skin.json" % [SKIN_ROOT, entry]
+			if FileAccess.file_exists(skin_path):
+				paths.append(skin_path)
+		entry = dir.get_next()
+	dir.list_dir_end()
+	return paths
+
+func _skin_with_default_binding_slots(source_skin: Dictionary, skin_path: String, default_slots: Dictionary) -> Dictionary:
+	var skin := _clean_skin_base(source_skin, skin_path)
+	var slots: Dictionary = skin.get("slots", {})
+	for slot_id in default_slots.keys():
+		var default_slot = default_slots[slot_id]
+		if not default_slot is Dictionary:
+			continue
+		var existing: Dictionary = slots.get(slot_id, {}) if slots.get(slot_id, {}) is Dictionary else {}
+		var slot: Dictionary = default_slot.duplicate(true)
+		slot["texture"] = String(existing.get("texture", slot.get("texture", "%s.png" % String(slot_id))))
+		slots[slot_id] = slot
+	skin["slots"] = slots
+	return skin
+
+func _write_skin_json(path: String, skin: Dictionary) -> bool:
+	if path == "":
+		return false
+	var file := FileAccess.open(path, FileAccess.WRITE)
+	if file == null:
+		return false
+	file.store_string(JSON.stringify(skin, "\t"))
+	return true
 
 func _find_part_index_by_slot_id(frame_parts: Array, slot_id: String, fallback_index: int) -> int:
 	for i in range(frame_parts.size()):
@@ -878,8 +1176,9 @@ func _binding_from_skin_for_part(part: Dictionary, part_index: int) -> Dictionar
 	var texture_path := _skin_texture_path(slot)
 	if texture_path == "":
 		return {}
+	var display_name := String(PART_DISPLAY_NAMES.get(slot_id, slot.get("name", texture_path.get_file().get_basename())))
 	return {
-		"name": String(slot.get("name", texture_path.get_file().get_basename())),
+		"name": display_name,
 		"path": texture_path,
 		"offset": _deserialize_vector2(slot.get("offset", [0.0, 0.0])),
 		"layer": int(slot.get("layer", 0)),
@@ -888,6 +1187,20 @@ func _binding_from_skin_for_part(part: Dictionary, part_index: int) -> Dictionar
 		"rotation": float(slot.get("rotation", 0.0)),
 		"mirror": bool(slot.get("mirror", false)),
 	}
+
+func _merge_skin_binding_with_existing(skin_binding: Dictionary, existing_binding) -> Dictionary:
+	if skin_binding.is_empty():
+		return {}
+	if not existing_binding is Dictionary or existing_binding.is_empty():
+		return skin_binding
+	var merged := _copy_binding(skin_binding)
+	merged["offset"] = existing_binding.get("offset", merged.get("offset", Vector2.ZERO))
+	merged["layer"] = int(existing_binding.get("layer", merged.get("layer", 0)))
+	merged["opacity"] = float(existing_binding.get("opacity", merged.get("opacity", 0.45)))
+	merged["scale"] = float(existing_binding.get("scale", merged.get("scale", 1.0)))
+	merged["rotation"] = float(existing_binding.get("rotation", merged.get("rotation", 0.0)))
+	merged["mirror"] = bool(existing_binding.get("mirror", merged.get("mirror", false)))
+	return merged
 
 func _skin_texture_path(slot: Dictionary) -> String:
 	var texture := String(slot.get("texture", ""))
@@ -904,14 +1217,20 @@ func _ensure_part_ids(frame_parts: Array) -> void:
 			continue
 		if String(frame_parts[i].get("id", "")) == "":
 			frame_parts[i]["id"] = _part_slot_id(frame_parts[i], i)
+		else:
+			frame_parts[i]["id"] = _canonical_part_slot_id(String(frame_parts[i]["id"]))
 
 func _ensure_required_parts(frame_parts: Array) -> void:
 	_ensure_part_ids(frame_parts)
 	_apply_standard_part_names(frame_parts)
-	_append_missing_hand_part(frame_parts, "left_hand", "left_forearm", "左手掌", Color(0.08, 0.60, 0.56))
-	_append_missing_hand_part(frame_parts, "right_hand", "right_forearm", "右手掌", Color(0.76, 0.32, 0.82))
+	_apply_standard_part_joints(frame_parts)
+	_normalize_binding_display_names(frame_parts)
+	_append_missing_hand_part(frame_parts, "outer_hand", "outer_forearm", "外侧手掌", Color(0.08, 0.60, 0.56))
+	_append_missing_hand_part(frame_parts, "inner_hand", "inner_forearm", "里侧手掌", Color(0.76, 0.32, 0.82))
 	_ensure_part_ids(frame_parts)
 	_apply_standard_part_names(frame_parts)
+	_apply_standard_part_joints(frame_parts)
+	_normalize_binding_display_names(frame_parts)
 
 func _apply_standard_part_names(frame_parts: Array) -> void:
 	for i in range(frame_parts.size()):
@@ -920,6 +1239,33 @@ func _apply_standard_part_names(frame_parts: Array) -> void:
 		var slot_id := _part_slot_id(frame_parts[i], i)
 		if PART_DISPLAY_NAMES.has(slot_id):
 			frame_parts[i]["name"] = String(PART_DISPLAY_NAMES[slot_id])
+
+func _apply_standard_part_joints(frame_parts: Array) -> void:
+	for i in range(frame_parts.size()):
+		if not frame_parts[i] is Dictionary:
+			continue
+		var slot_id := _part_slot_id(frame_parts[i], i)
+		if not PART_DEFAULT_JOINTS.has(slot_id):
+			continue
+		var joints: Array = PART_DEFAULT_JOINTS[slot_id]
+		frame_parts[i]["joint_a"] = String(joints[0])
+		frame_parts[i]["joint_b"] = String(joints[1])
+
+func _normalize_binding_display_names(frame_parts: Array) -> void:
+	for i in range(frame_parts.size()):
+		if not frame_parts[i] is Dictionary:
+			continue
+		var binding: Dictionary = frame_parts[i].get("binding", {})
+		if binding.is_empty():
+			continue
+		var path := String(binding.get("path", ""))
+		if path == "":
+			continue
+		if not _texture_path_exists(path):
+			frame_parts[i]["binding"] = {}
+			continue
+		binding["name"] = _display_name_for_texture(String(binding.get("name", "")), path)
+		frame_parts[i]["binding"] = binding
 
 func _append_missing_hand_part(frame_parts: Array, hand_slot: String, forearm_slot: String, part_name: String, color: Color) -> void:
 	if _find_part_index_by_slot_id(frame_parts, hand_slot, -1) >= 0:
@@ -931,40 +1277,43 @@ func _append_missing_hand_part(frame_parts: Array, hand_slot: String, forearm_sl
 	var wrist: Vector2 = forearm.get("b", Vector2.ZERO)
 	var direction: Vector2 = Vector2(forearm.get("b", Vector2.ZERO)) - Vector2(forearm.get("a", Vector2.ZERO))
 	if direction.length() <= 0.001:
-		direction = Vector2.LEFT if hand_slot == "left_hand" else Vector2.RIGHT
+		direction = Vector2.LEFT if hand_slot == "outer_hand" else Vector2.RIGHT
 	else:
 		direction = direction.normalized()
 	var length := 44.0
 	var hand := _part(part_name, wrist, wrist + direction * length, color)
 	hand["id"] = hand_slot
-	hand["joint_a"] = "left_wrist" if hand_slot == "left_hand" else "right_wrist"
+	hand["joint_a"] = "left_wrist" if hand_slot == "outer_hand" else "right_wrist"
 	hand["joint_b"] = hand_slot
 	frame_parts.append(hand)
 
 func _part_slot_id(part: Dictionary, part_index: int) -> String:
 	var saved_id := String(part.get("id", ""))
 	if saved_id != "":
-		return saved_id
+		return _canonical_part_slot_id(saved_id)
 	if part_index >= 0 and part_index < PART_SLOT_IDS.size():
 		return String(PART_SLOT_IDS[part_index])
 	return String(part.get("name", "part_%d" % part_index))
+
+func _canonical_part_slot_id(slot_id: String) -> String:
+	return String(LEGACY_PART_SLOT_IDS.get(slot_id, slot_id))
 
 func _make_default_parts() -> Array:
 	var default_parts: Array = [
 		_part("头部", Vector2(610, 100), Vector2(610, 158), Color(0.94, 0.25, 0.22)),
 		_part("躯干", Vector2(610, 158), Vector2(610, 322), Color(0.12, 0.45, 0.90)),
-		_part("左上臂", Vector2(610, 158), Vector2(530, 230), Color(0.10, 0.68, 0.38)),
-		_part("左前臂", Vector2(530, 230), Vector2(474, 300), Color(0.13, 0.78, 0.66)),
-		_part("右上臂", Vector2(610, 158), Vector2(696, 214), Color(0.62, 0.35, 0.95)),
-		_part("右前臂", Vector2(696, 214), Vector2(754, 282), Color(0.82, 0.40, 0.88)),
-		_part("左大腿", Vector2(610, 322), Vector2(550, 430), Color(0.97, 0.58, 0.12)),
-		_part("左小腿", Vector2(550, 430), Vector2(520, 555), Color(0.96, 0.74, 0.12)),
-		_part("左脚掌", Vector2(520, 555), Vector2(455, 575), Color(0.59, 0.43, 0.22)),
-		_part("右大腿", Vector2(610, 322), Vector2(680, 424), Color(0.90, 0.18, 0.45)),
-		_part("右小腿", Vector2(680, 424), Vector2(726, 540), Color(0.55, 0.22, 0.78)),
-		_part("右脚掌", Vector2(726, 540), Vector2(796, 548), Color(0.28, 0.34, 0.42)),
-		_part("左手掌", Vector2(474, 300), Vector2(438, 326), Color(0.08, 0.60, 0.56)),
-		_part("右手掌", Vector2(754, 282), Vector2(792, 302), Color(0.76, 0.32, 0.82)),
+		_part("外侧上臂", Vector2(610, 158), Vector2(530, 230), Color(0.10, 0.68, 0.38)),
+		_part("外侧前臂", Vector2(530, 230), Vector2(474, 300), Color(0.13, 0.78, 0.66)),
+		_part("里侧上臂", Vector2(610, 158), Vector2(696, 214), Color(0.62, 0.35, 0.95)),
+		_part("里侧前臂", Vector2(696, 214), Vector2(754, 282), Color(0.82, 0.40, 0.88)),
+		_part("外侧大腿", Vector2(610, 322), Vector2(550, 430), Color(0.97, 0.58, 0.12)),
+		_part("外侧小腿", Vector2(550, 430), Vector2(520, 555), Color(0.96, 0.74, 0.12)),
+		_part("外侧脚掌", Vector2(520, 555), Vector2(455, 575), Color(0.59, 0.43, 0.22)),
+		_part("里侧大腿", Vector2(610, 322), Vector2(680, 424), Color(0.90, 0.18, 0.45)),
+		_part("里侧小腿", Vector2(680, 424), Vector2(726, 540), Color(0.55, 0.22, 0.78)),
+		_part("里侧脚掌", Vector2(726, 540), Vector2(796, 548), Color(0.28, 0.34, 0.42)),
+		_part("外侧手掌", Vector2(474, 300), Vector2(438, 326), Color(0.08, 0.60, 0.56)),
+		_part("里侧手掌", Vector2(754, 282), Vector2(792, 302), Color(0.76, 0.32, 0.82)),
 	]
 	return _with_default_joints(default_parts)
 
@@ -985,8 +1334,8 @@ func _with_default_joints(frame_parts: Array) -> Array:
 		["pelvis", "right_knee"],
 		["right_knee", "right_ankle"],
 		["right_ankle", "right_toe"],
-		["left_wrist", "left_hand"],
-		["right_wrist", "right_hand"],
+		["left_wrist", "outer_hand"],
+		["right_wrist", "inner_hand"],
 	]
 	for i in range(mini(frame_parts.size(), joints.size())):
 		frame_parts[i]["id"] = String(PART_SLOT_IDS[i])
@@ -1153,12 +1502,14 @@ func _deserialize_color(value) -> Color:
 		return Color(float(value[0]), float(value[1]), float(value[2]), float(value[3]))
 	return Color.WHITE
 
-func _save_current_frame() -> void:
+func _save_current_frame(apply_symmetry := true) -> void:
 	if selected_frame < 0 or selected_frame >= frames.size():
 		return
 	_ensure_required_parts(parts)
 	if selected_frame > 0 or lock_first_frame_lengths:
 		_normalize_parts_to_first_lengths(parts)
+	if symmetry_enabled and apply_symmetry:
+		_apply_symmetry_to_parts(parts, selected_part)
 	frames[selected_frame]["parts"] = _copy_parts(parts)
 	if selected_group >= 0 and selected_group < action_groups.size():
 		action_groups[selected_group]["frames"] = _copy_frames(frames)
@@ -1171,6 +1522,8 @@ func _load_frame(index: int, save_previous := true) -> void:
 		_normalize_frame_to_first_lengths(frames[selected_frame])
 	parts = _copy_parts(frames[selected_frame]["parts"])
 	_ensure_required_parts(parts)
+	if symmetry_enabled:
+		_apply_symmetry_to_parts(parts, selected_part)
 	selected_part = clampi(selected_part, 0, parts.size() - 1)
 	_rebuild_bone_picker()
 	_update_ui()
@@ -1309,6 +1662,28 @@ func _toggle_length_lock(enabled: bool) -> void:
 	queue_redraw()
 	_save_project()
 
+func _toggle_handles_visibility() -> void:
+	show_handles = not show_handles
+	_update_ui()
+	queue_redraw()
+
+func _toggle_symmetry(enabled: bool) -> void:
+	if updating_binding_controls:
+		return
+	_save_current_frame()
+	symmetry_enabled = enabled
+	if symmetry_enabled:
+		_apply_symmetry_to_parts(parts, selected_part)
+		_save_current_frame()
+		if export_label != null:
+			export_label.text = "Symmetry enabled. Paired arm and leg lengths/scales are locked."
+	else:
+		if export_label != null:
+			export_label.text = "Symmetry disabled."
+	_update_ui()
+	queue_redraw()
+	_save_project()
+
 func _capture_locked_lengths_from_first_frame() -> void:
 	locked_part_lengths.clear()
 	if frames.is_empty():
@@ -1317,6 +1692,84 @@ func _capture_locked_lengths_from_first_frame() -> void:
 	for part in template_parts:
 		if part is Dictionary:
 			locked_part_lengths.append(Vector2(part.get("a", Vector2.ZERO)).distance_to(Vector2(part.get("b", Vector2.ZERO))))
+
+func _apply_symmetry_to_parts(frame_parts: Array, priority_part := -1) -> void:
+	if not symmetry_enabled or frame_parts.is_empty():
+		return
+	for pair in SYMMETRY_SLOT_PAIRS:
+		_apply_symmetry_pair(frame_parts, String(pair[0]), String(pair[1]), priority_part)
+
+func _apply_symmetry_scale_to_parts(frame_parts: Array, priority_part := -1) -> void:
+	if not symmetry_enabled or frame_parts.is_empty():
+		return
+	for pair in SYMMETRY_SLOT_PAIRS:
+		_apply_symmetry_scale_pair(frame_parts, String(pair[0]), String(pair[1]), priority_part)
+
+func _apply_symmetry_pair(frame_parts: Array, outer_slot: String, inner_slot: String, priority_part: int) -> void:
+	var outer_index := _find_part_index_by_slot_id(frame_parts, outer_slot, -1)
+	var inner_index := _find_part_index_by_slot_id(frame_parts, inner_slot, -1)
+	if outer_index < 0 or inner_index < 0:
+		return
+	var source_index := outer_index
+	var target_index := inner_index
+	if priority_part == inner_index:
+		source_index = inner_index
+		target_index = outer_index
+	elif priority_part == outer_index:
+		source_index = outer_index
+		target_index = inner_index
+	_sync_part_length(frame_parts, source_index, target_index)
+	_sync_part_binding_scale(frame_parts, source_index, target_index)
+
+func _apply_symmetry_scale_pair(frame_parts: Array, outer_slot: String, inner_slot: String, priority_part: int) -> void:
+	var outer_index := _find_part_index_by_slot_id(frame_parts, outer_slot, -1)
+	var inner_index := _find_part_index_by_slot_id(frame_parts, inner_slot, -1)
+	if outer_index < 0 or inner_index < 0:
+		return
+	var source_index := outer_index
+	var target_index := inner_index
+	if priority_part == inner_index:
+		source_index = inner_index
+		target_index = outer_index
+	elif priority_part == outer_index:
+		source_index = outer_index
+		target_index = inner_index
+	_sync_part_binding_scale(frame_parts, source_index, target_index)
+
+func _sync_part_length(frame_parts: Array, source_index: int, target_index: int) -> void:
+	if source_index < 0 or source_index >= frame_parts.size() or target_index < 0 or target_index >= frame_parts.size():
+		return
+	var source_a: Vector2 = frame_parts[source_index].get("a", Vector2.ZERO)
+	var source_b: Vector2 = frame_parts[source_index].get("b", Vector2.ZERO)
+	var target_a: Vector2 = frame_parts[target_index].get("a", Vector2.ZERO)
+	var target_b: Vector2 = frame_parts[target_index].get("b", Vector2.ZERO)
+	var length := source_a.distance_to(source_b)
+	if length <= 0.001:
+		return
+	var direction := target_b - target_a
+	if direction.length() <= 0.001:
+		direction = source_b - source_a
+	if direction.length() <= 0.001:
+		return
+	direction = direction.normalized()
+	var new_b := _clamp_to_canvas(target_a + direction * length)
+	var joint_b := String(frame_parts[target_index].get("joint_b", ""))
+	if joint_b == "":
+		frame_parts[target_index]["b"] = new_b
+		return
+	for i in range(frame_parts.size()):
+		if String(frame_parts[i].get("joint_a", "")) == joint_b:
+			frame_parts[i]["a"] = new_b
+		if String(frame_parts[i].get("joint_b", "")) == joint_b:
+			frame_parts[i]["b"] = new_b
+
+func _sync_part_binding_scale(frame_parts: Array, source_index: int, target_index: int) -> void:
+	var source_binding: Dictionary = frame_parts[source_index].get("binding", {})
+	var target_binding: Dictionary = frame_parts[target_index].get("binding", {})
+	if source_binding.is_empty() or target_binding.is_empty():
+		return
+	target_binding["scale"] = float(source_binding.get("scale", target_binding.get("scale", 1.0)))
+	frame_parts[target_index]["binding"] = target_binding
 
 func _locked_length_for_part(part_index: int) -> float:
 	if not lock_first_frame_lengths:
@@ -1386,6 +1839,8 @@ func _drag_to(pos: Vector2) -> void:
 		_move_endpoint_group_to(drag_part, 1, _constrain_endpoint_to_first_length(drag_part, 1, clamped))
 	if selected_frame > 0 or lock_first_frame_lengths:
 		_normalize_parts_to_first_lengths(parts, drag_part)
+	if symmetry_enabled:
+		_apply_symmetry_to_parts(parts, drag_part)
 	_save_current_frame()
 	_update_ui()
 	queue_redraw()
@@ -1419,10 +1874,11 @@ func _draw_figure() -> void:
 			width = LINE_WIDTH + 1.5
 		draw_line(parts[i]["a"], parts[i]["b"], color, width, true)
 
-	_draw_head_marker()
+	if show_handles:
+		_draw_head_marker()
 	_draw_bound_textures(0, 1000000)
 
-	if is_playing:
+	if is_playing or not show_handles:
 		return
 	for i in range(parts.size()):
 		_draw_handle(parts[i]["a"], i == selected_part, _is_head_top_endpoint(i, 0))
@@ -1638,6 +2094,13 @@ func _update_ui() -> void:
 		length_lock_button.button_pressed = lock_first_frame_lengths
 		length_lock_button.text = "长度已锁定" if lock_first_frame_lengths else "锁定长度"
 		updating_binding_controls = false
+	if handles_toggle_button != null:
+		handles_toggle_button.text = "隐藏圆点" if show_handles else "显示圆点"
+	if symmetry_toggle_button != null:
+		updating_binding_controls = true
+		symmetry_toggle_button.button_pressed = symmetry_enabled
+		symmetry_toggle_button.text = "关闭对称" if symmetry_enabled else "开启对称"
+		updating_binding_controls = false
 	if selected_label != null and not parts.is_empty():
 		var part: Dictionary = parts[selected_part]
 		var length: float = part["a"].distance_to(part["b"])
@@ -1656,14 +2119,19 @@ func _update_binding_controls() -> void:
 	var part: Dictionary = parts[selected_part]
 	var binding: Dictionary = part.get("binding", {})
 	if not binding.is_empty():
-		var selected_texture := String(binding.get("name", ""))
-		var selected_index := texture_picker.selected
+		var slot_id := _part_slot_id(part, selected_part)
+		var binding_path := String(binding.get("path", ""))
+		var selected_index := _ensure_texture_option_for_binding(binding, slot_id)
 		for i in range(texture_options.size()):
-			if String(texture_options[i]["name"]) == selected_texture:
+			if String(texture_options[i].get("path", "")) == binding_path:
 				selected_index = i
 				break
 		if texture_picker.item_count > 0 and selected_index >= 0:
 			texture_picker.select(selected_index)
+		elif texture_picker.item_count > 0:
+			texture_picker.select(0)
+	elif texture_picker.item_count > 0:
+		texture_picker.select(0)
 	var has_binding := not binding.is_empty()
 	var selected_path := _selected_texture_path()
 	if clear_image_button != null:
@@ -1903,7 +2371,9 @@ func _set_binding_scale(value: float) -> void:
 		return
 	binding["scale"] = clampf(value, 0.1, 4.0)
 	parts[selected_part]["binding"] = binding
-	_save_current_frame()
+	if symmetry_enabled:
+		_apply_symmetry_scale_to_parts(parts, selected_part)
+	_save_current_frame(false)
 	queue_redraw()
 	_save_project()
 

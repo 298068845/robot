@@ -1,4 +1,4 @@
-extends Node2D
+﻿extends Node2D
 
 const SHAPE_PATH := "res://assets/animation/run_skeleton_20f.json"
 const KEYFRAME_PATH := "res://assets/animation/run_skeleton_keyframes.json"
@@ -12,49 +12,49 @@ const JOINT_OUTLINE_RADIUS := 4.4
 const ORDER := [
 	"head",
 	"torso",
-	"left_upper_arm",
-	"left_forearm",
-	"left_hand",
-	"right_upper_arm",
-	"right_forearm",
-	"right_hand",
-	"left_thigh",
-	"left_shin",
-	"left_foot",
-	"right_thigh",
-	"right_shin",
-	"right_foot"
+	"outer_upper_arm",
+	"outer_forearm",
+	"outer_hand",
+	"inner_upper_arm",
+	"inner_forearm",
+	"inner_hand",
+	"outer_thigh",
+	"outer_shin",
+	"outer_foot",
+	"inner_thigh",
+	"inner_shin",
+	"inner_foot"
 ]
 const LABELS := {
 	"head": "Head",
 	"torso": "Torso",
-	"left_upper_arm": "Left upper arm",
-	"left_forearm": "Left forearm",
-	"left_hand": "Left hand",
-	"right_upper_arm": "Right upper arm",
-	"right_forearm": "Right forearm",
-	"right_hand": "Right hand",
-	"left_thigh": "Left thigh",
-	"left_shin": "Left shin",
-	"left_foot": "Left foot",
-	"right_thigh": "Right thigh",
-	"right_shin": "Right shin",
-	"right_foot": "Right foot"
+	"outer_upper_arm": "Outer upper arm",
+	"outer_forearm": "Outer forearm",
+	"outer_hand": "Outer hand",
+	"inner_upper_arm": "Inner upper arm",
+	"inner_forearm": "Inner forearm",
+	"inner_hand": "Inner hand",
+	"outer_thigh": "Outer thigh",
+	"outer_shin": "Outer shin",
+	"outer_foot": "Outer foot",
+	"inner_thigh": "Inner thigh",
+	"inner_shin": "Inner shin",
+	"inner_foot": "Inner foot"
 }
 const LINKS := [
 	["head", "torso"],
-	["torso", "left_upper_arm"],
-	["left_upper_arm", "left_forearm"],
-	["left_forearm", "left_hand"],
-	["torso", "right_upper_arm"],
-	["right_upper_arm", "right_forearm"],
-	["right_forearm", "right_hand"],
-	["torso", "left_thigh"],
-	["left_thigh", "left_shin"],
-	["left_shin", "left_foot"],
-	["torso", "right_thigh"],
-	["right_thigh", "right_shin"],
-	["right_shin", "right_foot"]
+	["torso", "outer_upper_arm"],
+	["outer_upper_arm", "outer_forearm"],
+	["outer_forearm", "outer_hand"],
+	["torso", "inner_upper_arm"],
+	["inner_upper_arm", "inner_forearm"],
+	["inner_forearm", "inner_hand"],
+	["torso", "outer_thigh"],
+	["outer_thigh", "outer_shin"],
+	["outer_shin", "outer_foot"],
+	["torso", "inner_thigh"],
+	["inner_thigh", "inner_shin"],
+	["inner_shin", "inner_foot"]
 ]
 
 var groups: Dictionary = {}
@@ -130,18 +130,18 @@ func _build_pose_from_joints(joints: Dictionary) -> Dictionary:
 	return {
 		"head": _part_transform(head_center, neck, (head_center - neck).angle() - PI * 0.5, head_center),
 		"torso": _part_transform(torso_center, torso_center, torso_rotation, torso_center),
-		"left_upper_arm": _limb_transform("left_upper_arm", joints["left_shoulder"], joints["left_elbow"]),
-		"left_forearm": _limb_transform("left_forearm", joints["left_elbow"], joints["left_wrist"]),
-		"left_hand": _hand_transform("left_hand", joints["left_wrist"], joints["left_hand"]),
-		"right_upper_arm": _limb_transform("right_upper_arm", joints["right_shoulder"], joints["right_elbow"]),
-		"right_forearm": _limb_transform("right_forearm", joints["right_elbow"], joints["right_wrist"]),
-		"right_hand": _hand_transform("right_hand", joints["right_wrist"], joints["right_hand"]),
-		"left_thigh": _limb_transform("left_thigh", joints["left_hip"], joints["left_knee"]),
-		"left_shin": _limb_transform("left_shin", joints["left_knee"], joints["left_ankle"]),
-		"left_foot": _foot_transform("left_foot", joints["left_ankle"], joints["left_toe"]),
-		"right_thigh": _limb_transform("right_thigh", joints["right_hip"], joints["right_knee"]),
-		"right_shin": _limb_transform("right_shin", joints["right_knee"], joints["right_ankle"]),
-		"right_foot": _foot_transform("right_foot", joints["right_ankle"], joints["right_toe"])
+		"outer_upper_arm": _limb_transform("outer_upper_arm", joints["left_shoulder"], joints["left_elbow"]),
+		"outer_forearm": _limb_transform("outer_forearm", joints["left_elbow"], joints["left_wrist"]),
+		"outer_hand": _hand_transform("outer_hand", joints["left_wrist"], joints["outer_hand"]),
+		"inner_upper_arm": _limb_transform("inner_upper_arm", joints["right_shoulder"], joints["right_elbow"]),
+		"inner_forearm": _limb_transform("inner_forearm", joints["right_elbow"], joints["right_wrist"]),
+		"inner_hand": _hand_transform("inner_hand", joints["right_wrist"], joints["inner_hand"]),
+		"outer_thigh": _limb_transform("outer_thigh", joints["left_hip"], joints["left_knee"]),
+		"outer_shin": _limb_transform("outer_shin", joints["left_knee"], joints["left_ankle"]),
+		"outer_foot": _foot_transform("outer_foot", joints["left_ankle"], joints["left_toe"]),
+		"inner_thigh": _limb_transform("inner_thigh", joints["right_hip"], joints["right_knee"]),
+		"inner_shin": _limb_transform("inner_shin", joints["right_knee"], joints["right_ankle"]),
+		"inner_foot": _foot_transform("inner_foot", joints["right_ankle"], joints["right_toe"])
 	}
 
 func _lock_pose_to_ground(pose: Dictionary) -> void:

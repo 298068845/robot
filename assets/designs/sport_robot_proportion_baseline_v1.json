@@ -1,0 +1,39 @@
+{
+  "name": "sport_robot_proportion_baseline_v1",
+  "source_image": "assets/designs/robot_design_sport_side_parts_hand_variants_v3.png",
+  "method": "Measured visible connected-component bounding boxes from the confirmed side parts design sheet. Axis length uses the limb's design reading direction: vertical height for head/torso/arms/legs/hands on the source sheet, horizontal width for feet.",
+  "base": {
+    "slot": "torso",
+    "axis": "height",
+    "axis_px": 318,
+    "ratio": 1.0
+  },
+  "slot_bboxes_px": {
+    "head": { "x": 216, "y": 50, "w": 171, "h": 186, "axis_px": 186, "axis_ratio_to_torso": 0.585 },
+    "torso": { "x": 464, "y": 34, "w": 180, "h": 318, "axis_px": 318, "axis_ratio_to_torso": 1.0 },
+    "outer_upper_arm": { "x": 730, "y": 82, "w": 124, "h": 243, "axis_px": 243, "axis_ratio_to_torso": 0.764 },
+    "inner_upper_arm": { "x": 1091, "y": 88, "w": 107, "h": 234, "axis_px": 234, "axis_ratio_to_torso": 0.736 },
+    "outer_forearm": { "x": 890, "y": 119, "w": 119, "h": 207, "axis_px": 207, "axis_ratio_to_torso": 0.651 },
+    "inner_forearm": { "x": 1247, "y": 144, "w": 105, "h": 191, "axis_px": 191, "axis_ratio_to_torso": 0.601 },
+    "outer_hand": { "x": 215, "y": 720, "w": 164, "h": 212, "axis_px": 212, "axis_ratio_to_torso": 0.667 },
+    "inner_hand": { "x": 486, "y": 718, "w": 158, "h": 216, "axis_px": 216, "axis_ratio_to_torso": 0.679 },
+    "outer_thigh": { "x": 194, "y": 350, "w": 128, "h": 289, "axis_px": 289, "axis_ratio_to_torso": 0.909 },
+    "inner_thigh": { "x": 405, "y": 360, "w": 105, "h": 276, "axis_px": 276, "axis_ratio_to_torso": 0.868 },
+    "outer_shin": { "x": 849, "y": 369, "w": 106, "h": 276, "axis_px": 276, "axis_ratio_to_torso": 0.868 },
+    "inner_shin": { "x": 1023, "y": 377, "w": 98, "h": 260, "axis_px": 260, "axis_ratio_to_torso": 0.818 },
+    "outer_foot": { "x": 535, "y": 492, "w": 232, "h": 144, "axis_px": 232, "axis_ratio_to_torso": 0.73 },
+    "inner_foot": { "x": 1162, "y": 493, "w": 233, "h": 146, "axis_px": 233, "axis_ratio_to_torso": 0.733 }
+  },
+  "paired_average_ratios": {
+    "upper_arm_axis": 0.75,
+    "forearm_axis": 0.626,
+    "hand_axis": 0.673,
+    "thigh_axis": 0.888,
+    "shin_axis": 0.843,
+    "foot_axis": 0.731
+  },
+  "editor_usage": {
+    "scale_lock_rule": "When global proportion lock is enabled, changing any part scale changes one shared skin_global_scale. The displayed axis length for each slot should remain slot.axis_ratio_to_torso * torso_display_axis_length * skin_global_scale.",
+    "do_not_use": "Do not judge correctness by how much of the fixed PNG canvas is filled. Only compare against this ratio table and locked approved slots."
+  }
+}

@@ -1,4 +1,4 @@
-extends SceneTree
+﻿extends SceneTree
 
 const RunSkeleton = preload("res://scripts/run_skeleton_animation.gd")
 
@@ -14,8 +14,8 @@ func _initialize() -> void:
 		run.t = run.duration * float(i) / float(run.keyframes.size())
 		run.queue_redraw()
 		var pose: Dictionary = run._pose_transforms(float(i) / float(run.keyframes.size()))
-		var left_foot: Vector2 = pose["left_foot"]["center"]
-		var right_foot: Vector2 = pose["right_foot"]["center"]
+		var outer_foot: Vector2 = pose["outer_foot"]["center"]
+		var inner_foot: Vector2 = pose["inner_foot"]["center"]
 		var lowest := -INF
 		var left_lowest := -INF
 		var right_lowest := -INF
@@ -25,10 +25,10 @@ func _initialize() -> void:
 			var scale: Vector2 = pose[name].get("scale", Vector2.ONE)
 			for p in run._world_points(name, center, rotation, scale):
 				lowest = max(lowest, p.y)
-				if name == "left_foot":
+				if name == "outer_foot":
 					left_lowest = max(left_lowest, p.y)
-				elif name == "right_foot":
+				elif name == "inner_foot":
 					right_lowest = max(right_lowest, p.y)
-		print("frame %d lowest_y=%.2f left_lowest=%.2f right_lowest=%.2f left_foot=(%.1f, %.1f) right_foot=(%.1f, %.1f)" % [i + 1, lowest, left_lowest, right_lowest, left_foot.x, left_foot.y, right_foot.x, right_foot.y])
+		print("frame %d lowest_y=%.2f left_lowest=%.2f right_lowest=%.2f outer_foot=(%.1f, %.1f) inner_foot=(%.1f, %.1f)" % [i + 1, lowest, left_lowest, right_lowest, outer_foot.x, outer_foot.y, inner_foot.x, inner_foot.y])
 	print(ProjectSettings.globalize_path("user://"))
 	quit(0)

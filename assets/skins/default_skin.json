@@ -1,0 +1,190 @@
+{
+	"schema": "robot_skin_v1",
+	"name": "default_skin",
+	"display_name": "Default Skin",
+	"base_dir": "res://assets/skins/sport_robot",
+	"slots": {
+		"head": {
+			"texture": "head.png",
+			"name": "??",
+			"scale": 1.25,
+			"offset": [
+				-12.0,
+				-1.0
+			],
+			"rotation": -95.0,
+			"mirror": true,
+			"layer": 20,
+			"opacity": 1.0
+		},
+		"torso": {
+			"texture": "torso.png",
+			"name": "??",
+			"scale": 1.25,
+			"offset": [
+				-5.0,
+				-8.0
+			],
+			"rotation": 0.0,
+			"mirror": true,
+			"layer": 8,
+			"opacity": 1.0
+		},
+		"outer_upper_arm": {
+			"texture": "outer_upper_arm.png",
+			"name": "????",
+			"scale": 2.65,
+			"offset": [
+				-5.0,
+				-8.0
+			],
+			"rotation": -9.0,
+			"mirror": false,
+			"layer": 14,
+			"opacity": 1.0
+		},
+		"outer_forearm": {
+			"texture": "outer_forearm.png",
+			"name": "????",
+			"scale": 2.75,
+			"offset": [
+				-11.0,
+				-8.0
+			],
+			"rotation": -17.0,
+			"mirror": false,
+			"layer": 10,
+			"opacity": 1.0
+		},
+		"inner_upper_arm": {
+			"texture": "inner_upper_arm.png",
+			"name": "????",
+			"scale": 2.65,
+			"offset": [
+				3.0,
+				13.0
+			],
+			"rotation": -19.0,
+			"mirror": false,
+			"layer": 3,
+			"opacity": 1.0
+		},
+		"inner_forearm": {
+			"texture": "inner_forearm.png",
+			"name": "????",
+			"scale": 2.75,
+			"offset": [
+				11.0,
+				0.0
+			],
+			"rotation": -21.0,
+			"mirror": false,
+			"layer": 1,
+			"opacity": 1.0
+		},
+		"outer_thigh": {
+			"texture": "outer_thigh.png",
+			"name": "????",
+			"scale": 1.7,
+			"offset": [
+				-4.0,
+				0.0
+			],
+			"rotation": -9.0,
+			"mirror": false,
+			"layer": 10,
+			"opacity": 1.0
+		},
+		"outer_shin": {
+			"texture": "outer_shin.png",
+			"name": "????",
+			"scale": 1.5,
+			"offset": [
+				-6.0,
+				-1.0
+			],
+			"rotation": -3.0,
+			"mirror": false,
+			"layer": 11,
+			"opacity": 1.0
+		},
+		"outer_foot": {
+			"texture": "outer_foot.png",
+			"name": "????",
+			"scale": 1.45,
+			"offset": [
+				13.0,
+				0.0
+			],
+			"rotation": -2.0,
+			"mirror": true,
+			"layer": 9,
+			"opacity": 1.0
+		},
+		"inner_thigh": {
+			"texture": "inner_thigh.png",
+			"name": "????",
+			"scale": 1.7,
+			"offset": [
+				0.0,
+				0.0
+			],
+			"rotation": 0.0,
+			"mirror": false,
+			"layer": 3,
+			"opacity": 1.0
+		},
+		"inner_shin": {
+			"texture": "inner_shin.png",
+			"name": "????",
+			"scale": 1.5,
+			"offset": [
+				0.0,
+				0.0
+			],
+			"rotation": -9.0,
+			"mirror": false,
+			"layer": 17,
+			"opacity": 1.0
+		},
+		"inner_foot": {
+			"texture": "inner_foot.png",
+			"name": "????",
+			"scale": 1.45,
+			"offset": [
+				8.0,
+				6.0
+			],
+			"rotation": 0.0,
+			"mirror": true,
+			"layer": 14,
+			"opacity": 1.0
+		},
+		"outer_hand": {
+			"texture": "outer_hand.png",
+			"name": "????",
+			"scale": 1.9,
+			"offset": [
+				16.0,
+				0.0
+			],
+			"rotation": 2.0,
+			"mirror": true,
+			"layer": 16,
+			"opacity": 1.0
+		},
+		"inner_hand": {
+			"texture": "inner_hand.png",
+			"name": "????",
+			"scale": 1.9,
+			"offset": [
+				7.0,
+				-3.0
+			],
+			"rotation": 14.0,
+			"mirror": false,
+			"layer": 21,
+			"opacity": 1.0
+		}
+	}
+}

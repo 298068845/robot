@@ -1,5 +1,15 @@
 # Mech Animation Demo
 
+## Robot Skin Image Gateway
+
+机器人皮肤相关出图必须先走 `scripts/robot_skin_gateway.py`，不能直接把 imagegen、裁图脚本或手写脚本产物保存成项目皮肤。
+
+- 规则源：`robot_design.skill`
+- 流程闸门：`scripts/robot_skin_gateway.py`
+- 使用说明：`ROBOT_SKIN_GATEWAY.md`
+- 候选/确认稿只能放在 `assets/designs`
+- 只有通过 `final_parts` preflight 和 audit 的最终部件才能进入 `assets/skins`
+
 ## Stick Figure Action Editor
 
 The demo includes a `Stick Figure Editor` entry in the top toolbar. It opens a 12-segment stick-figure action editor for quickly blocking out poses and frame sequences.

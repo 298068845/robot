@@ -1,4 +1,4 @@
-extends Control
+﻿extends Control
 
 const REF_SHEET_PATH := "res://assets/animation/walk_reference_sheet.png"
 const HAND_TRACE_PATH := "res://assets/animation/segmented_reference_annotated.png"
@@ -8,18 +8,18 @@ const POINTS_PER_PART := 20
 const PARTS := [
 	{"name": "head", "label": "head", "color": "#ff4646"},
 	{"name": "torso", "label": "torso", "color": "#34bdf8"},
-	{"name": "left_upper_arm", "label": "L upper arm", "color": "#ff4d6d"},
-	{"name": "left_forearm", "label": "L forearm", "color": "#ff7890"},
-	{"name": "left_hand", "label": "L hand", "color": "#ffb3c1"},
-	{"name": "right_upper_arm", "label": "R upper arm", "color": "#a855ff"},
-	{"name": "right_forearm", "label": "R forearm", "color": "#c084fc"},
-	{"name": "right_hand", "label": "R hand", "color": "#ddb8ff"},
-	{"name": "left_thigh", "label": "L thigh", "color": "#4dff88"},
-	{"name": "left_shin", "label": "L shin", "color": "#77ffad"},
-	{"name": "left_foot", "label": "L foot", "color": "#25d366"},
-	{"name": "right_thigh", "label": "R thigh", "color": "#ff9f43"},
-	{"name": "right_shin", "label": "R shin", "color": "#ffbd73"},
-	{"name": "right_foot", "label": "R foot", "color": "#f97316"}
+	{"name": "outer_upper_arm", "label": "Outer upper arm", "color": "#ff4d6d"},
+	{"name": "outer_forearm", "label": "Outer forearm", "color": "#ff7890"},
+	{"name": "outer_hand", "label": "Outer hand", "color": "#ffb3c1"},
+	{"name": "inner_upper_arm", "label": "Inner upper arm", "color": "#a855ff"},
+	{"name": "inner_forearm", "label": "Inner forearm", "color": "#c084fc"},
+	{"name": "inner_hand", "label": "Inner hand", "color": "#ddb8ff"},
+	{"name": "outer_thigh", "label": "Outer thigh", "color": "#4dff88"},
+	{"name": "outer_shin", "label": "Outer shin", "color": "#77ffad"},
+	{"name": "outer_foot", "label": "Outer foot", "color": "#25d366"},
+	{"name": "inner_thigh", "label": "Inner thigh", "color": "#ff9f43"},
+	{"name": "inner_shin", "label": "Inner shin", "color": "#ffbd73"},
+	{"name": "inner_foot", "label": "Inner foot", "color": "#f97316"}
 ]
 
 var ref_sheet := Image.new()
@@ -308,18 +308,18 @@ func _default_center(part_name: String, frame: int) -> Vector2:
 	var base: Dictionary = {
 		"head": Vector2(82, 86),
 		"torso": Vector2(78, 176),
-		"left_upper_arm": Vector2(59, 170),
-		"left_forearm": Vector2(50, 224),
-		"left_hand": Vector2(43, 265),
-		"right_upper_arm": Vector2(101, 168),
-		"right_forearm": Vector2(124, 184),
-		"right_hand": Vector2(145, 198),
-		"left_thigh": Vector2(60, 278),
-		"left_shin": Vector2(38, 360),
-		"left_foot": Vector2(42, 436),
-		"right_thigh": Vector2(97, 278),
-		"right_shin": Vector2(116, 360),
-		"right_foot": Vector2(132, 436)
+		"outer_upper_arm": Vector2(59, 170),
+		"outer_forearm": Vector2(50, 224),
+		"outer_hand": Vector2(43, 265),
+		"inner_upper_arm": Vector2(101, 168),
+		"inner_forearm": Vector2(124, 184),
+		"inner_hand": Vector2(145, 198),
+		"outer_thigh": Vector2(60, 278),
+		"outer_shin": Vector2(38, 360),
+		"outer_foot": Vector2(42, 436),
+		"inner_thigh": Vector2(97, 278),
+		"inner_shin": Vector2(116, 360),
+		"inner_foot": Vector2(132, 436)
 	}
 	var point: Vector2 = base.get(part_name, Vector2(80, 220))
 	if frame > 0:

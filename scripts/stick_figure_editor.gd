@@ -89,6 +89,24 @@ const PART_DEFAULT_JOINTS := {
 	"outer_hand": ["left_wrist", "outer_hand"],
 	"inner_hand": ["right_wrist", "inner_hand"],
 }
+const HUMAN_LIMIT_MAX_PASSES := 4
+const HUMAN_LIMB_CONSTRAINTS := [
+	{"root": "neck", "end": "left_elbow", "reference_a": "neck", "reference_b": "pelvis", "min": -130.0, "max": 130.0},
+	{"root": "neck", "end": "right_elbow", "reference_a": "neck", "reference_b": "pelvis", "min": -130.0, "max": 130.0},
+	{"root": "pelvis", "end": "left_knee", "reference_a": "neck", "reference_b": "pelvis", "min": -85.0, "max": 85.0},
+	{"root": "pelvis", "end": "right_knee", "reference_a": "neck", "reference_b": "pelvis", "min": -85.0, "max": 85.0},
+	{"root": "neck", "end": "head_top", "reference_a": "pelvis", "reference_b": "neck", "min": -50.0, "max": 50.0},
+]
+const HUMAN_HINGE_CONSTRAINTS := [
+	{"parent": "neck", "pivot": "left_elbow", "child": "left_wrist", "max": 150.0, "sign": 1.0},
+	{"parent": "neck", "pivot": "right_elbow", "child": "right_wrist", "max": 150.0, "sign": -1.0},
+	{"parent": "pelvis", "pivot": "left_knee", "child": "left_ankle", "max": 145.0},
+	{"parent": "pelvis", "pivot": "right_knee", "child": "right_ankle", "max": 145.0},
+	{"parent": "left_elbow", "pivot": "left_wrist", "child": "outer_hand", "min": -65.0, "max": 65.0},
+	{"parent": "right_elbow", "pivot": "right_wrist", "child": "inner_hand", "min": -65.0, "max": 65.0},
+	{"parent": "left_knee", "pivot": "left_ankle", "child": "left_toe", "min": -55.0, "max": 55.0},
+	{"parent": "right_knee", "pivot": "right_ankle", "child": "right_toe", "min": -55.0, "max": 55.0},
+]
 const TEXTURE_DISPLAY_NAMES := {
 	"head_side": "头部",
 	"torso_side": "躯干",
@@ -154,6 +172,8 @@ var speed_slider: HSlider
 var action_group_picker: OptionButton
 var source_group_picker: OptionButton
 var skin_picker: OptionButton
+var save_project_button: Button
+var revert_project_button: Button
 var length_lock_button: Button
 var handles_toggle_button: Button
 var symmetry_toggle_button: Button
@@ -175,6 +195,7 @@ var opacity_spin: SpinBox
 var scale_spin: SpinBox
 var rotation_spin: SpinBox
 var mirror_check: CheckBox
+var project_dirty := false
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
@@ -342,6 +363,20 @@ func _build_ui() -> void:
 	export_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	export_button.pressed.connect(_export_png)
 	frame_action_grid.add_child(export_button)
+
+	save_project_button = Button.new()
+	save_project_button.text = "保存"
+	save_project_button.custom_minimum_size = Vector2(0, 26)
+	save_project_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	save_project_button.pressed.connect(_save_project_from_button)
+	frame_action_grid.add_child(save_project_button)
+
+	revert_project_button = Button.new()
+	revert_project_button.text = "回撤"
+	revert_project_button.custom_minimum_size = Vector2(0, 26)
+	revert_project_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	revert_project_button.pressed.connect(_revert_project_from_button)
+	frame_action_grid.add_child(revert_project_button)
 
 	length_lock_button = Button.new()
 	length_lock_button.toggle_mode = true
@@ -835,8 +870,58 @@ func _load_project() -> bool:
 	return true
 
 func _save_project() -> void:
-	if action_groups.is_empty():
+	_mark_project_dirty()
+
+func _save_project_from_button() -> void:
+	_save_current_frame()
+	if _write_project_json():
+		project_dirty = false
+		if export_label != null:
+			export_label.text = "已保存到 JSON：%s" % SAVE_PATH
+	else:
+		if export_label != null:
+			export_label.text = "保存失败：无法写入 %s" % SAVE_PATH
+	_update_save_button()
+
+func _revert_project_from_button() -> void:
+	if not _saved_project_is_loadable():
+		if export_label != null:
+			export_label.text = "没有可回撤的已保存 JSON。"
 		return
+	_stop_playback()
+	var target_frame := selected_frame
+	var target_part := selected_part
+	if not _load_project():
+		if export_label != null:
+			export_label.text = "回撤失败：无法读取上一次保存。"
+		return
+	selected_frame = clampi(target_frame, 0, frames.size() - 1)
+	selected_part = target_part
+	project_dirty = false
+	_load_frame(selected_frame, false)
+	_rebuild_skin_picker()
+	_rebuild_action_group_pickers()
+	_update_save_button()
+	if export_label != null:
+		export_label.text = "已回撤到上一次保存。"
+
+func _saved_project_is_loadable() -> bool:
+	if not FileAccess.file_exists(SAVE_PATH):
+		return false
+	var raw := FileAccess.get_file_as_string(SAVE_PATH)
+	var parsed = JSON.parse_string(raw)
+	if not parsed is Dictionary:
+		return false
+	var groups = parsed.get("action_groups", [])
+	return groups is Array and not groups.is_empty()
+
+func _mark_project_dirty() -> void:
+	project_dirty = true
+	_update_save_button()
+
+func _write_project_json() -> bool:
+	if action_groups.is_empty():
+		return false
 	if selected_group >= 0 and selected_group < action_groups.size():
 		action_groups[selected_group]["frames"] = _copy_frames(frames)
 	var data := {
@@ -858,6 +943,8 @@ func _save_project() -> void:
 	var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if file != null:
 		file.store_string(JSON.stringify(data, "\t"))
+		return true
+	return false
 
 func _load_texture_options() -> void:
 	texture_options.clear()
@@ -1510,6 +1597,7 @@ func _save_current_frame(apply_symmetry := true) -> void:
 		_normalize_parts_to_first_lengths(parts)
 	if symmetry_enabled and apply_symmetry:
 		_apply_symmetry_to_parts(parts, selected_part)
+	_apply_human_joint_limits(parts)
 	frames[selected_frame]["parts"] = _copy_parts(parts)
 	if selected_group >= 0 and selected_group < action_groups.size():
 		action_groups[selected_group]["frames"] = _copy_frames(frames)
@@ -1524,6 +1612,7 @@ func _load_frame(index: int, save_previous := true) -> void:
 	_ensure_required_parts(parts)
 	if symmetry_enabled:
 		_apply_symmetry_to_parts(parts, selected_part)
+	_apply_human_joint_limits(parts)
 	selected_part = clampi(selected_part, 0, parts.size() - 1)
 	_rebuild_bone_picker()
 	_update_ui()
@@ -1631,7 +1720,10 @@ func _start_playback() -> void:
 
 func _stop_playback() -> void:
 	is_playing = false
-	playback_timer.stop()
+	if playback_timer != null:
+		playback_timer.stop()
+	if play_button == null:
+		return
 	play_button.text = "播放"
 
 func _advance_playback() -> void:
@@ -1841,6 +1933,7 @@ func _drag_to(pos: Vector2) -> void:
 		_normalize_parts_to_first_lengths(parts, drag_part)
 	if symmetry_enabled:
 		_apply_symmetry_to_parts(parts, drag_part)
+	_apply_human_joint_limits(parts)
 	_save_current_frame()
 	_update_ui()
 	queue_redraw()
@@ -1988,6 +2081,115 @@ func _move_endpoint_group_by_delta(part_index: int, endpoint: int, delta: Vector
 	var current := _endpoint_position(part_index, endpoint)
 	_move_endpoint_group_to(part_index, endpoint, _clamp_to_canvas(current + delta))
 
+func _apply_human_joint_limits(frame_parts: Array) -> void:
+	if frame_parts.is_empty():
+		return
+	for _pass_index in range(HUMAN_LIMIT_MAX_PASSES):
+		var changed := false
+		for constraint in HUMAN_LIMB_CONSTRAINTS:
+			changed = _apply_limb_cone_limit(frame_parts, constraint) or changed
+		for constraint in HUMAN_HINGE_CONSTRAINTS:
+			changed = _apply_hinge_limit(frame_parts, constraint) or changed
+		if not changed:
+			break
+
+func _apply_limb_cone_limit(frame_parts: Array, constraint: Dictionary) -> bool:
+	var root_id := String(constraint.get("root", ""))
+	var end_id := String(constraint.get("end", ""))
+	var ref_a_id := String(constraint.get("reference_a", ""))
+	var ref_b_id := String(constraint.get("reference_b", ""))
+	if not _has_joint(frame_parts, root_id) or not _has_joint(frame_parts, end_id):
+		return false
+	if not _has_joint(frame_parts, ref_a_id) or not _has_joint(frame_parts, ref_b_id):
+		return false
+	var root := _joint_position(frame_parts, root_id)
+	var end := _joint_position(frame_parts, end_id)
+	var reference := _joint_position(frame_parts, ref_b_id) - _joint_position(frame_parts, ref_a_id)
+	var limb := end - root
+	var length := limb.length()
+	if length <= 0.001 or reference.length() <= 0.001:
+		return false
+	var signed_angle := reference.angle_to(limb)
+	var min_angle := deg_to_rad(float(constraint.get("min", -180.0)))
+	var max_angle := deg_to_rad(float(constraint.get("max", 180.0)))
+	var clamped_angle := clampf(signed_angle, min_angle, max_angle)
+	if absf(clamped_angle - signed_angle) <= 0.0001:
+		return false
+	var target := root + reference.normalized().rotated(clamped_angle) * length
+	_set_joint_position(frame_parts, end_id, _clamp_to_canvas(target))
+	return true
+
+func _apply_hinge_limit(frame_parts: Array, constraint: Dictionary) -> bool:
+	var parent_id := String(constraint.get("parent", ""))
+	var pivot_id := String(constraint.get("pivot", ""))
+	var child_id := String(constraint.get("child", ""))
+	if not _has_joint(frame_parts, parent_id) or not _has_joint(frame_parts, pivot_id):
+		return false
+	if not _has_joint(frame_parts, child_id):
+		return false
+	var parent := _joint_position(frame_parts, parent_id)
+	var pivot := _joint_position(frame_parts, pivot_id)
+	var child := _joint_position(frame_parts, child_id)
+	var parent_vec := pivot - parent
+	var child_vec := child - pivot
+	var child_length := child_vec.length()
+	if parent_vec.length() <= 0.001 or child_length <= 0.001:
+		return false
+	var signed_angle := parent_vec.angle_to(child_vec)
+	var clamped_angle := signed_angle
+	if constraint.has("min"):
+		var min_angle := deg_to_rad(float(constraint.get("min", -180.0)))
+		var max_angle := deg_to_rad(float(constraint.get("max", 180.0)))
+		clamped_angle = clampf(signed_angle, min_angle, max_angle)
+	else:
+		var max_angle := deg_to_rad(float(constraint.get("max", 180.0)))
+		var bend_sign := float(constraint["sign"]) if constraint.has("sign") else _preferred_hinge_sign(frame_parts, parent_id, pivot_id, child_id)
+		var signed_for_side := signed_angle * bend_sign
+		var clamped_for_side := clampf(signed_for_side, 0.0, max_angle)
+		clamped_angle = clamped_for_side * bend_sign
+	if absf(clamped_angle - signed_angle) <= 0.0001:
+		return false
+	var target := pivot + parent_vec.normalized().rotated(clamped_angle) * child_length
+	_set_joint_position(frame_parts, child_id, _clamp_to_canvas(target))
+	return true
+
+func _preferred_hinge_sign(frame_parts: Array, parent_id: String, pivot_id: String, child_id: String) -> float:
+	var template_parts := frame_parts
+	if not frames.is_empty():
+		var first_parts: Array = frames[0].get("parts", [])
+		if _has_joint(first_parts, parent_id) and _has_joint(first_parts, pivot_id) and _has_joint(first_parts, child_id):
+			template_parts = first_parts
+	var parent := _joint_position(template_parts, parent_id)
+	var pivot := _joint_position(template_parts, pivot_id)
+	var child := _joint_position(template_parts, child_id)
+	var angle := (pivot - parent).angle_to(child - pivot)
+	if absf(angle) <= 0.001:
+		return 1.0
+	return 1.0 if angle > 0.0 else -1.0
+
+func _has_joint(frame_parts: Array, joint_id: String) -> bool:
+	if joint_id == "":
+		return false
+	for part in frame_parts:
+		if String(part.get("joint_a", "")) == joint_id or String(part.get("joint_b", "")) == joint_id:
+			return true
+	return false
+
+func _joint_position(frame_parts: Array, joint_id: String) -> Vector2:
+	for part in frame_parts:
+		if String(part.get("joint_a", "")) == joint_id:
+			return Vector2(part.get("a", Vector2.ZERO))
+		if String(part.get("joint_b", "")) == joint_id:
+			return Vector2(part.get("b", Vector2.ZERO))
+	return Vector2.ZERO
+
+func _set_joint_position(frame_parts: Array, joint_id: String, target: Vector2) -> void:
+	for part in frame_parts:
+		if String(part.get("joint_a", "")) == joint_id:
+			part["a"] = target
+		if String(part.get("joint_b", "")) == joint_id:
+			part["b"] = target
+
 func _constrain_endpoint_to_first_length(part_index: int, endpoint: int, target: Vector2) -> Vector2:
 	if selected_frame <= 0 and not lock_first_frame_lengths:
 		return target
@@ -2089,6 +2291,7 @@ func _is_head_top_endpoint(part_index: int, endpoint: int) -> bool:
 func _update_ui() -> void:
 	if frame_label != null:
 		frame_label.text = "Frame %d / %d" % [selected_frame + 1, frames.size()]
+	_update_save_button()
 	if length_lock_button != null:
 		updating_binding_controls = true
 		length_lock_button.button_pressed = lock_first_frame_lengths
@@ -2109,6 +2312,13 @@ func _update_ui() -> void:
 		selected_label.text = "Current part: %s  Length: %d px\nTexture: %s" % [part["name"], int(round(length)), binding_name]
 	_update_binding_controls()
 	_rebuild_frame_list()
+
+func _update_save_button() -> void:
+	if save_project_button == null:
+		return
+	save_project_button.text = "保存*" if project_dirty else "保存"
+	if revert_project_button != null:
+		revert_project_button.disabled = not project_dirty
 
 func _update_binding_controls() -> void:
 	if texture_picker == null or parts.is_empty():

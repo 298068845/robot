@@ -1,0 +1,177 @@
+{
+	"schema": "stick_figure_part_defaults_v1",
+	"source": "user://stick_figure_actions.json",
+	"source_group": "action_group_1",
+	"source_frame": "action_1",
+	"current_skin_path": "res://assets/skins/sport_robot/skin.json",
+	"defaults": {
+		"head": {
+			"texture": "res://assets/skins/sport_robot/head.png",
+			"scale": 1.25,
+			"offset": [
+				-12,
+				-1
+			],
+			"rotation": -95,
+			"mirror": true,
+			"layer": 20,
+			"opacity": 1
+		},
+		"torso": {
+			"texture": "res://assets/skins/sport_robot/torso.png",
+			"scale": 1.25,
+			"offset": [
+				-5,
+				-8
+			],
+			"rotation": 0,
+			"mirror": true,
+			"layer": 8,
+			"opacity": 1
+		},
+		"outer_upper_arm": {
+			"texture": "res://assets/skins/sport_robot/outer_upper_arm.png",
+			"scale": 2.65,
+			"offset": [
+				-5,
+				-8
+			],
+			"rotation": -9,
+			"mirror": false,
+			"layer": 14,
+			"opacity": 1
+		},
+		"outer_forearm": {
+			"texture": "res://assets/skins/sport_robot/outer_forearm.png",
+			"scale": 2.75,
+			"offset": [
+				-11,
+				-8
+			],
+			"rotation": -17,
+			"mirror": false,
+			"layer": 10,
+			"opacity": 1
+		},
+		"inner_upper_arm": {
+			"texture": "res://assets/skins/sport_robot/inner_upper_arm.png",
+			"scale": 2.65,
+			"offset": [
+				3,
+				13
+			],
+			"rotation": -19,
+			"mirror": false,
+			"layer": 3,
+			"opacity": 1
+		},
+		"inner_forearm": {
+			"texture": "res://assets/skins/sport_robot/inner_forearm.png",
+			"scale": 2.75,
+			"offset": [
+				11,
+				0
+			],
+			"rotation": -21,
+			"mirror": false,
+			"layer": 1,
+			"opacity": 1
+		},
+		"outer_thigh": {
+			"texture": "res://assets/skins/sport_robot/outer_thigh.png",
+			"scale": 1.7,
+			"offset": [
+				-4,
+				0
+			],
+			"rotation": -9,
+			"mirror": false,
+			"layer": 10,
+			"opacity": 1
+		},
+		"outer_shin": {
+			"texture": "res://assets/skins/sport_robot/outer_shin.png",
+			"scale": 1.5,
+			"offset": [
+				-6,
+				-1
+			],
+			"rotation": -3,
+			"mirror": false,
+			"layer": 11,
+			"opacity": 1
+		},
+		"outer_foot": {
+			"texture": "res://assets/skins/sport_robot/outer_foot.png",
+			"scale": 1.45,
+			"offset": [
+				13,
+				0
+			],
+			"rotation": -2,
+			"mirror": true,
+			"layer": 9,
+			"opacity": 1
+		},
+		"inner_thigh": {
+			"texture": "res://assets/skins/sport_robot/inner_thigh.png",
+			"scale": 1.7,
+			"offset": [
+				0,
+				0
+			],
+			"rotation": 0,
+			"mirror": false,
+			"layer": 3,
+			"opacity": 1
+		},
+		"inner_shin": {
+			"texture": "res://assets/skins/sport_robot/inner_shin.png",
+			"scale": 1.5,
+			"offset": [
+				0,
+				0
+			],
+			"rotation": -9,
+			"mirror": false,
+			"layer": 17,
+			"opacity": 1
+		},
+		"inner_foot": {
+			"texture": "res://assets/skins/sport_robot/inner_foot.png",
+			"scale": 1.45,
+			"offset": [
+				8,
+				6
+			],
+			"rotation": 0,
+			"mirror": true,
+			"layer": 14,
+			"opacity": 1
+		},
+		"outer_hand": {
+			"texture": "res://assets/skins/sport_robot/outer_hand.png",
+			"scale": 1.9,
+			"offset": [
+				16,
+				0
+			],
+			"rotation": 2,
+			"mirror": true,
+			"layer": 16,
+			"opacity": 1
+		},
+		"inner_hand": {
+			"texture": "res://assets/skins/sport_robot/inner_hand.png",
+			"scale": 1.9,
+			"offset": [
+				7,
+				-3
+			],
+			"rotation": 14,
+			"mirror": false,
+			"layer": 21,
+			"opacity": 1
+		}
+	}
+}
